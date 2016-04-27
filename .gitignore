@@ -1,0 +1,7 @@
+bin
+obj
+Debug
+Release
+*.sdf
+*.opensdf
+*.exe

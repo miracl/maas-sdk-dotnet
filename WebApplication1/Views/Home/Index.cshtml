@@ -1,0 +1,45 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+<div class="jumbotron">
+    <h1>M-Pin Connect</h1>
+    <h2>Sample client</h2>
+</div>
+<div class="row">
+    <div class="col-md-8">
+
+        @using (Html.BeginForm())
+        {
+            if (User.Identity.IsAuthenticated)
+            {
+                <button name="Logout" id="LogoutId" title="Test" value="Logout">Logout</button>
+            }
+            else
+            {
+                <button name="Login" id="LoginId" title="LoginTitle" value="LoginValue">Login</button><br />
+            }
+        }
+
+        <div class="col-md-10">
+            <h3>Identity</h3>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <p>
+                    <dl>
+                        @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
+                        {
+                            <dt>@claim.Type</dt>
+                            <dd>@claim.Value</dd>
+                        }
+                    </dl>
+                </p>
+            }
+            else
+            {
+                <p>
+                    anonymous.
+                </p>
+            }
+        </div>
+    </div>
+</div>
