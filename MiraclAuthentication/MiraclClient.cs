@@ -90,10 +90,13 @@ namespace Miracl
         public string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
             this.Options = options ?? this.Options;
+            if (this.Options == null)
+                return string.Empty;
+
             this.State = stateString ?? Guid.NewGuid().ToString("N");
             this.Nonce = Guid.NewGuid().ToString("N");
             this.RedirectUrl = baseUri + this.Options.CallbackPath;
-
+            
             // space separated
             string scope = string.Join(" ", this.Options.Scope);
             if (string.IsNullOrEmpty(scope))
@@ -139,6 +142,7 @@ namespace Miracl
 
             var client = new TokenClient(Constants.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
             client.Timeout = this.Options.BackchannelTimeout;
+            client.AuthenticationStyle = AuthenticationStyle.PostValues;
 
             this.AccessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
             return this.AccessTokenResponse;
@@ -154,13 +158,13 @@ namespace Miracl
             {
                 this.State = null;
                 this.Nonce = null;
-                this.AccessTokenResponse = null;
+                this.Options = null;         
             }
 
             this.RedirectUrl = null;
             this.UserInfo = null;
             this.Identity = null;
-            this.Options = null;
+            this.AccessTokenResponse = null;
         }
 
         /// <summary>
@@ -249,10 +253,14 @@ namespace Miracl
         private async Task<IEnumerable<SystemClaims.Claim>> GetUserInfoClaimsAsync(string accessToken)
         {
             UserInfoClient client = new UserInfoClient(new Uri(Constants.UserInfoEndpoint), accessToken);
+            
             this.UserInfo = await client.GetAsync();
 
             var claims = new List<SystemClaims.Claim>();
-            this.UserInfo.Claims.ToList().ForEach(ui => claims.Add(new SystemClaims.Claim(ui.Item1, ui.Item2)));
+            if (this.UserInfo.Claims != null)
+            {
+                this.UserInfo.Claims.ToList().ForEach(ui => claims.Add(new SystemClaims.Claim(ui.Item1, ui.Item2)));
+            }
 
             return claims;
         }

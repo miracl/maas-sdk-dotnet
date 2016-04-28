@@ -2,8 +2,8 @@
     ViewBag.Title = "Home Page";
 }
 <div class="jumbotron">
-    <h1>M-Pin Connect</h1>
-    <h2>Sample client</h2>
+    <h1>Welcome to Miracl</h1>
+    <h2>Sample client application</h2>
 </div>
 <div class="row">
     <div class="col-md-8">
@@ -12,13 +12,38 @@
         {
             if (User.Identity.IsAuthenticated)
             {
-                <button name="Logout" id="LogoutId" title="Test" value="Logout">Logout</button>
+                <button name="Logout" id="LogoutId" title="Test" value="Logout" >Logout</button>
             }
             else
             {
-                <button name="Login" id="LoginId" title="LoginTitle" value="LoginValue">Login</button><br />
+                <div class="inner cover">
+                    <p class="lead">Please login to access the miracle world of Miracl.</p>
+                    <p class="lead">
+                        <a id="btmpin" href="#" class="btn btn-lg btn-default" onclick="javascript:onSubmitButtonClick(); return false;" data-uri="@ViewBag.AuthorizationUri">Login with M-Pin</a>
+                    </p>
+                    <p><label class="small"><input type="checkbox" onclick='$("#newuser").toggle()' /> Predefine username</label></p>
+                    <p><input id="newuser" style="color:black;display:none" /></p>
+                </div>
+
+                @Scripts.Render("~/Scripts/mpin.js")
+
+                <script type="text/javascript" language="javascript">
+                    function onSubmitButtonClick() {
+                        var b = document.getElementById("btmpin");
+                        var atr = b.getAttribute("data-uri");
+                        var prerollId = $("#newuser").val();
+                        mpin.login({
+                            authURL: atr,
+                            prerollId: prerollId
+                        });
+                    }
+                </script>
             }
         }
+
+        <br />
+        <br />
+        <br />
 
         <div class="col-md-10">
             <h3>Identity</h3>

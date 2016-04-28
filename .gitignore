@@ -2,6 +2,7 @@ bin
 obj
 Debug
 Release
+packages
 *.sdf
 *.opensdf
 *.exe

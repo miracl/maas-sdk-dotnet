@@ -59,16 +59,16 @@ namespace WebApplication5
             //   appId: "",
             //   appSecret: "");
             
-            //app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions
-            //{
-            //    ClientId = "",
-            //    ClientSecret = ""
-            //}); 
-            
+            app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions
+            {
+                ClientId = "934714630340-hpv8dmcql4rff10eq8o5m5mrko4muj38.apps.googleusercontent.com",
+                ClientSecret = "1ceKGwmg912uQeD-KpRD8oPT"
+            });
+
             app.UseMiraclAuthentication(new MiraclAuthenticationOptions
             {
-                ClientId = "CLIENT_ID",
-                ClientSecret = "CLIENT_SECRET"
+                ClientId = "934714630340-hpv8dmcql4rff10eq8o5m5mrko4muj38.apps.googleusercontent.com",
+                ClientSecret = "1ceKGwmg912uQeD-KpRD8oPT"
             });
         }
     }

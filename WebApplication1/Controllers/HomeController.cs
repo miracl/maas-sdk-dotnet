@@ -14,45 +14,28 @@ namespace WebApplication4.Controllers
     {
         internal static MiraclClient Client = new MiraclClient(new MiraclAuthenticationOptions
         {
-            ClientId = "CLIENT_ID",
-            ClientSecret = "CLIENT_SECRET",
+            ClientId = "tkcrgjxg2epqo",
+            ClientSecret = "5BbIxnqsEoufNp6g4uCXRDwQt61icF1O7IDXObwR8PU",
             AuthenticationType = "Cookies"
         });
 
         public ActionResult Index()
         {
+            var url = Client.GetAuthorizationRequestUrl("http://test.my");
+            ViewBag.AuthorizationUri = url;
             return View();
         }
 
         [HttpPost]
-        public ActionResult Index(string Login, string Logout)
+        public ActionResult Index(string Logout)
         {
-            if (Login != null)
-            {
-                var url = Client.GetAuthorizationRequestUrl("https://test.my");
-                return Redirect(url);
-            }
-
             if (Logout != null)
             {
+                Client.ClearUserInfo(false);
                 Request.GetOwinContext().Authentication.SignOut();
             }
 
-
-            return View();
-        }
-
-        public ActionResult SignIn()
-        {
-            var url = Client.GetAuthorizationRequestUrl("https://test.my");
-            return Redirect(url);
-        }
-
-        public ActionResult SignOut()
-        {
-            Client.ClearUserInfo(true);
-            Request.GetOwinContext().Authentication.SignOut();
-            return Redirect("/");
+            return RedirectToAction("Index");
         }
 
         public ActionResult Contact()
