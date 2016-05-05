@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManualAuthenticationApp", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExternalAuthenticationApp", "WebApplication2\ExternalAuthenticationApp.csproj", "{F5D122F5-6A70-432C-9B79-3331DC8AE971}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationTests", "MiraclAuthenticationTests\MiraclAuthenticationTests.csproj", "{D4801C21-134A-4704-8909-B86810EBE7D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		{F5D122F5-6A70-432C-9B79-3331DC8AE971}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5D122F5-6A70-432C-9B79-3331DC8AE971}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5D122F5-6A70-432C-9B79-3331DC8AE971}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4801C21-134A-4704-8909-B86810EBE7D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4801C21-134A-4704-8909-B86810EBE7D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4801C21-134A-4704-8909-B86810EBE7D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4801C21-134A-4704-8909-B86810EBE7D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -39,5 +45,6 @@ Global
 		{F3E1857B-336C-471B-B8AA-18781FC407AD} = {76D0C616-F808-42FA-BEB0-06432A0D6FD1}
 		{F078FEEC-BA82-45ED-B9E6-086E396816BA} = {BAF920D7-5625-4A74-88F1-1A40173146AC}
 		{F5D122F5-6A70-432C-9B79-3331DC8AE971} = {BAF920D7-5625-4A74-88F1-1A40173146AC}
+		{D4801C21-134A-4704-8909-B86810EBE7D8} = {76D0C616-F808-42FA-BEB0-06432A0D6FD1}
 	EndGlobalSection
 EndGlobal

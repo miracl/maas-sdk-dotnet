@@ -12,7 +12,7 @@
 
 ## Details and usage for manual authentication
 
-All interaction with API happens through `MiraclClient` object. Each application needs to construct an instance of `MiraclClient`.
+All interaction with API happens through a `MiraclClient` object. Each application needs to construct an instance of `MiraclClient`.
 
 ### Initialization
 To start using Miracl API, `MiraclClient` should be initialized. It can be done when needed or at application startup. `MiraclAuthenticationOptions` class is used to pass the authentication credentials and parameters.
@@ -29,7 +29,35 @@ client = new MiraclClient(new MiraclAuthenticationOptions
 
 ### Authorization flow
 
-If the user is not authorized, (s)he should be redirected to the URL returned by `client.GetAuthorizationRequestUrl(baseUri)`. After redirect and user interaction with the MIRACL server, user will be sent to the `redirect uri` defined at creation of the application in the server. Note that the redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the baseUri + `CallbackPath` value of the `MiraclAuthenticationOptions' object).
+If the user is not authorized, (s)he should scan the qr barcode with his/her phone app and authorize on the MIRACL server. This could be done as pass the authorize uri to the qr bacode by `ViewBag.AuthorizationUri = client.GetAuthorizationRequestUrl(baseUri)` on the server and use it in the client with the following code:
+
+```	
+<div class="inner cover">
+    <p class="lead">Please login to access the miracle world of Miracl.</p>
+    <p class="lead">
+        <a id="btmpin" href="#" class="btn btn-lg btn-default" onclick="javascript:onSubmitButtonClick(); return false;" data-uri="@ViewBag.AuthorizationUri">Login with M-Pin</a>
+    </p>
+    <p><label class="small"><input type="checkbox" onclick='$("#newuser").toggle()' /> Predefine username</label></p>
+    <p><input id="newuser" style="color:black;display:none" /></p>
+</div>
+
+@Scripts.Render("~/Scripts/mpin.js")
+
+<script type="text/javascript" language="javascript">
+    function onSubmitButtonClick() {
+        var b = document.getElementById("btmpin");
+        var atr = b.getAttribute("data-uri");
+        var prerollId = $("#newuser").val();                        
+        mpin.login({
+            authURL: atr,
+            prerollId: prerollId
+        });
+    }
+</script>
+```
+
+Note that the file `mpin.js` should be included in the `Scripts` directory of the project.
+When the user is being authorized, (s)he is returned to the `redirect uri` defined at creation of the application in the server. Note that the redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the appBaseUri + `CallbackPath` value of the `MiraclAuthenticationOptions' object by default).
 
 To complete the authorization the query of the received request should be passed to `client.ValidateAuthorization(Request.QueryString)`. This method will return `null` if user denied authorization or a response with the access token if authorization succeeded. 
 
@@ -62,3 +90,10 @@ Replace `CLIENT_ID` and `CLIENT_SECRET` with valid data from https://m-pin.my.id
 * `ManualAuthenticationApp` demonstates using the `MiraclClient` object to authenticate manually to the MIRACL server
 * `ExternalAuthenticationApp` demonstates authentication using the external MIRACL service.
 
+## MIRACL .NET SDK Reference
+
+ MIRACL .NET SDK library is based on the following library
+
+* [IdentityModel](https://github.com/IdentityModel/IdentityModel)
+* [Microsoft.IdentityModel.Protocol.Extensions](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet)
+* [Microsoft.Owin.Security](http://www.nuget.org/packages/Microsoft.Owin.Security/)

@@ -1,5 +1,6 @@
 ﻿using IdentityModel;
 using IdentityModel.Client;
+using Microsoft.IdentityModel.Protocols;
 using Microsoft.Owin;
 using Newtonsoft.Json.Linq;
 using System;
@@ -7,7 +8,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using SystemClaims = System.Security.Claims;
@@ -20,13 +20,16 @@ namespace Miracl
     public class MiraclClient
     {
         #region Fields
+        public MiraclAuthenticationOptions Options;
         public string State, Nonce;
+
         internal UserInfoResponse UserInfo;
-        private string RedirectUrl;
-        private TokenResponse AccessTokenResponse;
-        private ClaimsIdentity Identity;
-        private MiraclAuthenticationOptions Options;
-        private List<SystemClaims.Claim> Claims;
+        
+        private string redirectUrl;
+        private TokenResponse accessTokenResponse;
+        private ClaimsIdentity identity;
+        private List<SystemClaims.Claim> claims;
+        private OpenIdConnectConfiguration config;
         #endregion
 
         #region C'tor
@@ -35,10 +38,14 @@ namespace Miracl
         /// </summary>
         public MiraclClient()
         {
-            ClearUserInfo();
+            ClearUserInfo();            
         }
 
-        public MiraclClient(MiraclAuthenticationOptions options)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MiraclClient"/> class.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        public MiraclClient(MiraclAuthenticationOptions options) : this() 
         {
             this.Options = options;
         }
@@ -71,7 +78,7 @@ namespace Miracl
         {
             get
             {
-                return TryGetValue("sub");
+                return TryGetValue("email");
             }
         }
 
@@ -80,39 +87,19 @@ namespace Miracl
         #region Methods
         #region Public
         /// <summary>
-        /// Returns redirect URL for authorization via M-Pin system. After URL
+        /// Constructs redirect URL for authorization via M-Pin system. After URL
         /// redirects back, pass the query string to ValidateAuthorization method to complete
         /// the authorization with server.        
         /// </summary>
         /// <param name="baseUri">The base URI of the calling app.</param>
         /// <param name="options">The options for authentication.</param>
         /// <returns>The callback url.</returns>
-        public string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
+        public async Task<string> GetAuthorizationRequestUrlAsync(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
-            this.Options = options ?? this.Options;
-            if (this.Options == null)
-                return string.Empty;
-
-            this.State = stateString ?? Guid.NewGuid().ToString("N");
-            this.Nonce = Guid.NewGuid().ToString("N");
-            this.RedirectUrl = baseUri + this.Options.CallbackPath;
-            
-            // space separated
-            string scope = string.Join(" ", this.Options.Scope);
-            if (string.IsNullOrEmpty(scope))
-            {
-                scope = "openid profile email";
-            }
-
-            var authRequest = new AuthorizeRequest(Constants.AuthorizeEndpoint);
-            return authRequest.CreateAuthorizeUrl(clientId: this.Options.ClientId,
-                                                    responseType: "code",
-                                                    scope: scope,
-                                                    redirectUri: RedirectUrl,
-                                                    state: this.State,
-                                                    nonce: this.Nonce);
+            await LoadOpenIdConnectConfigurationAsync();
+            return GetAuthorizationRequestUrl(baseUri, options, stateString);
         }
-
+        
         /// <summary>
         /// Returns response with the access token if validation succeeds or None if query string
         /// doesn't contain code and state.
@@ -130,22 +117,22 @@ namespace Miracl
             GetValuesBasedOnType(requestQuery, ref code, ref returnedState);
 
             if (false == State.Equals(returnedState, StringComparison.Ordinal) ||
-                (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(RedirectUrl)))
+                (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(redirectUrl)))
             {
                 return null;
             }
 
             if (string.IsNullOrEmpty(redirectUri))
             {
-                redirectUri = RedirectUrl;
+                redirectUri = redirectUrl;
             }
 
-            var client = new TokenClient(Constants.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
+            var client = new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
             client.Timeout = this.Options.BackchannelTimeout;
-            client.AuthenticationStyle = AuthenticationStyle.PostValues;
+            client.AuthenticationStyle = AuthenticationStyle.BasicAuthentication;
 
-            this.AccessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
-            return this.AccessTokenResponse;
+            this.accessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
+            return this.accessTokenResponse;
         }
 
         /// <summary>
@@ -161,10 +148,10 @@ namespace Miracl
                 this.Options = null;         
             }
 
-            this.RedirectUrl = null;
+            this.redirectUrl = null;
             this.UserInfo = null;
-            this.Identity = null;
-            this.AccessTokenResponse = null;
+            this.identity = null;
+            this.accessTokenResponse = null;
         }
 
         /// <summary>
@@ -173,7 +160,7 @@ namespace Miracl
         /// <returns>Returns True if access token for the user is available. </returns>
         public bool IsAuthorized()
         {
-            return this.AccessTokenResponse != null;
+            return this.accessTokenResponse != null;
         }
 
         /// <summary>
@@ -188,17 +175,63 @@ namespace Miracl
                 throw new Exception("No Options for authentication! ValidateAuthorization method should be called first!");
 
             await FillClaimsAsync(response);
-            this.Identity = new ClaimsIdentity(this.Claims,
+            this.identity = new ClaimsIdentity(this.claims,
                     Options.AuthenticationType,
                     ClaimsIdentity.DefaultNameClaimType,
                     ClaimsIdentity.DefaultRoleClaimType);
 
-            return this.Identity;
+            return this.identity;
         }
 
         #endregion
 
+        #region Internal
+        /// <summary>
+        /// Constructs redirect URL for authorization via M-Pin system to be redirected to.
+        /// </summary>
+        /// <param name="baseUri">The base URI.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="stateString">The state string.</param>
+        /// <returns>Uri for authorization to be redirected to.</returns>
+        /// <exception cref="System.ArgumentException">MiraclAuthenticationOptions should be set!</exception>
+        internal string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
+        {
+            this.Options = options ?? this.Options;
+            if (this.Options == null)
+                throw new ArgumentException("MiraclAuthenticationOptions should be set!");
+
+            this.State = stateString ?? Guid.NewGuid().ToString("N");
+            this.Nonce = Guid.NewGuid().ToString("N");
+            this.redirectUrl = baseUri + this.Options.CallbackPath;
+
+            // space separated
+            string scope = string.Join(" ", this.Options.Scope);
+            if (string.IsNullOrEmpty(scope))
+            {
+                scope = "openid profile email";
+            }
+
+            var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);
+            return authRequest.CreateAuthorizeUrl(clientId: this.Options.ClientId,
+                                                    responseType: "code",
+                                                    scope: scope,
+                                                    redirectUri: redirectUrl,
+                                                    state: this.State,
+                                                    nonce: this.Nonce);
+        }
+
+        #endregion 
+
         #region Private
+
+        private async Task LoadOpenIdConnectConfigurationAsync()
+        {
+            var discoAddress = Constants.DiscoveryEndpoint + "/.well-known/openid-configuration";
+
+            var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
+            config = await manager.GetConfigurationAsync();
+        }
+
         private void GetValuesBasedOnType(IEnumerable requestQuery, ref string code, ref string returnedState)
         {
             Type queryType = requestQuery.GetType();
@@ -232,27 +265,27 @@ namespace Miracl
         {
             if (!string.IsNullOrWhiteSpace(response.IdentityToken))
             {
-                this.Claims = new List<SystemClaims.Claim>();
-                this.Claims.Clear();
+                this.claims = new List<SystemClaims.Claim>();
+                this.claims.Clear();
 
                 if (!string.IsNullOrWhiteSpace(response.AccessToken))
                 {
-                    this.Claims.AddRange(await GetUserInfoClaimsAsync(response.AccessToken));
+                    this.claims.AddRange(await GetUserInfoClaimsAsync(response.AccessToken));
 
-                    this.Claims.Add(new SystemClaims.Claim("access_token", response.AccessToken));
-                    this.Claims.Add(new SystemClaims.Claim("expires_at", (DateTime.UtcNow.ToEpochTime() + response.ExpiresIn).ToDateTimeFromEpoch().ToString()));
+                    this.claims.Add(new SystemClaims.Claim("access_token", response.AccessToken));
+                    this.claims.Add(new SystemClaims.Claim("expires_at", (DateTime.UtcNow.ToEpochTime() + response.ExpiresIn).ToDateTimeFromEpoch().ToString()));
                 }
 
                 if (!string.IsNullOrWhiteSpace(response.RefreshToken))
                 {
-                    this.Claims.Add(new SystemClaims.Claim("refresh_token", response.RefreshToken));
+                    this.claims.Add(new SystemClaims.Claim("refresh_token", response.RefreshToken));
                 }
             }
         }
 
         private async Task<IEnumerable<SystemClaims.Claim>> GetUserInfoClaimsAsync(string accessToken)
         {
-            UserInfoClient client = new UserInfoClient(new Uri(Constants.UserInfoEndpoint), accessToken);
+            UserInfoClient client = new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken);
             
             this.UserInfo = await client.GetAsync();
 
