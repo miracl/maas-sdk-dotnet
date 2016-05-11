@@ -57,38 +57,24 @@ If the user is not authorized, (s)he should scan the qr barcode with his/her pho
 ```
 
 Note that the file `mpin.js` should be included in the `Scripts` directory of the project.
-When the user is being authorized, (s)he is returned to the `redirect uri` defined at creation of the application in the server. Note that the redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the appBaseUri + `CallbackPath` value of the `MiraclAuthenticationOptions' object by default).
+When the user is being authorized, (s)he is returned to the `redirect uri` defined at creation of the application in the server. The redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the appBaseUri + `CallbackPath` value of the `MiraclAuthenticationOptions` object by default).
 
 To complete the authorization the query of the received request should be passed to `client.ValidateAuthorization(Request.QueryString)`. This method will return `null` if user denied authorization or a response with the access token if authorization succeeded. 
 
 ### Status check and user data
 
-To check if the user has token use `client.IsAuthorized()`. If so, `client.UserId` and `client.Email` will return additional user data and `client.GetIdentity(tokenResponse)` returns the claims-based identity for granting a user to be signed in. 
+To check if the user has token use `client.IsAuthorized()`. If so, `client.UserId` and `client.Email` will return additional user data after `client.GetIdentity(tokenResponse)` is executed which itself returns the claims-based identity for granting a user to be signed in. 
 If `null` is returned, the user is not authenticated or the token is expired and client needs to be authorized once more to access required data.
 
 Use `client.ClearUserInfo(false)` to drop user identity data.
 
 Use `client.ClearUserInfo()` to clear user authorization status.
 
-## External authentication
-
-To add an external authentication to your application the only thing you should do is adding the following lines in your Startup class:
-
-```
-app.UseMiraclAuthentication(new MiraclAuthenticationOptions
-	{
-		ClientId = "CLIENT_ID",
-		ClientSecret = "CLIENT_SECRET"
-	});
-```
-
-
 ## Samples
 
 Replace `CLIENT_ID` and `CLIENT_SECRET` with valid data from https://m-pin.my.id/protected . `baseUri` should be the uri of your web application. 
 
 * `ManualAuthenticationApp` demonstates using the `MiraclClient` object to authenticate manually to the MIRACL server
-* `ExternalAuthenticationApp` demonstates authentication using the external MIRACL service.
 
 ## MIRACL .NET SDK Reference
 
