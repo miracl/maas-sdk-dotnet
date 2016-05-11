@@ -72,7 +72,7 @@ Use `client.ClearUserInfo()` to clear user authorization status.
 
 ## Samples
 
-Replace `CLIENT_ID` and `CLIENT_SECRET` with valid data from https://m-pin.my.id/protected . `baseUri` should be the uri of your web application. 
+Replace `CLIENT_ID` and `CLIENT_SECRET` with valid data from the MIRACL server. `baseUri` should be the uri of your web application. 
 
 * `ManualAuthenticationApp` demonstates using the `MiraclClient` object to authenticate manually to the MIRACL server
 
