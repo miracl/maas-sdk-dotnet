@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using SystemClaims = System.Security.Claims;
@@ -24,12 +25,13 @@ namespace Miracl
         public string State, Nonce;
 
         internal UserInfoResponse UserInfo;
-        
+        internal OpenIdConnectConfiguration config;
+
         private string redirectUrl;
         private TokenResponse accessTokenResponse;
         private ClaimsIdentity identity;
         private List<SystemClaims.Claim> claims;
-        private OpenIdConnectConfiguration config;
+        private HttpMessageHandler httpMessageHandler;
         #endregion
 
         #region C'tor
@@ -38,18 +40,39 @@ namespace Miracl
         /// </summary>
         public MiraclClient()
         {
-            ClearUserInfo();            
+            ClearUserInfo();
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MiraclClient"/> class.
         /// </summary>
-        /// <param name="options">The options.</param>
-        public MiraclClient(MiraclAuthenticationOptions options) : this() 
+        /// <param name="options">The options which describes the authenticating parameters.</param>
+        public MiraclClient(MiraclAuthenticationOptions options)
+            : this()
         {
             this.Options = options;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MiraclClient"/> class.
+        /// </summary>
+        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
+        public MiraclClient(HttpMessageHandler innerHttpMessageHandler)
+            : this()
+        {
+            this.httpMessageHandler = innerHttpMessageHandler;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MiraclClient"/> class.
+        /// </summary>
+        /// <param name="options">The options which describes the authenticating parameters.</param>
+        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
+        public MiraclClient(MiraclAuthenticationOptions options, HttpMessageHandler innerHttpMessageHandler)
+            : this(options)
+        {
+            this.httpMessageHandler = innerHttpMessageHandler;
+        }
         #endregion
 
         #region Members
@@ -78,7 +101,7 @@ namespace Miracl
         {
             get
             {
-                return TryGetValue("email");
+                return TryGetValue("sub");
             }
         }
 
@@ -99,7 +122,7 @@ namespace Miracl
             await LoadOpenIdConnectConfigurationAsync();
             return GetAuthorizationRequestUrl(baseUri, options, stateString);
         }
-        
+
         /// <summary>
         /// Returns response with the access token if validation succeeds or None if query string
         /// doesn't contain code and state.
@@ -107,7 +130,10 @@ namespace Miracl
         /// <param name="requestQuery">The query string returned from authorization URL.</param>
         /// <param name="options">The options for authentication.</param>
         /// <param name="redirectUri">The redirect URI. If not specified, it will be taken from the authorization request.</param>
-        /// <returns>The access token from the authentication response.</returns>
+        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
+        /// <returns>
+        /// The access token from the authentication response.
+        /// </returns>
         public async Task<TokenResponse> ValidateAuthorization(IEnumerable requestQuery, MiraclAuthenticationOptions options = null, string redirectUri = "")
         {
             string code = null;
@@ -127,9 +153,12 @@ namespace Miracl
                 redirectUri = redirectUrl;
             }
 
-            var client = new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
+            var client = this.httpMessageHandler != null
+                          ? new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret, this.httpMessageHandler)
+                          : new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
+
             client.Timeout = this.Options.BackchannelTimeout;
-            client.AuthenticationStyle = AuthenticationStyle.BasicAuthentication;
+            client.AuthenticationStyle = AuthenticationStyle.PostValues;
 
             this.accessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
             return this.accessTokenResponse;
@@ -145,13 +174,14 @@ namespace Miracl
             {
                 this.State = null;
                 this.Nonce = null;
-                this.Options = null;         
+                this.Options = null;
             }
 
             this.redirectUrl = null;
             this.UserInfo = null;
             this.identity = null;
             this.accessTokenResponse = null;
+            this.httpMessageHandler = null;
         }
 
         /// <summary>
@@ -220,16 +250,26 @@ namespace Miracl
                                                     nonce: this.Nonce);
         }
 
-        #endregion 
+        #endregion
 
         #region Private
 
         private async Task LoadOpenIdConnectConfigurationAsync()
         {
-            var discoAddress = Constants.DiscoveryEndpoint + "/.well-known/openid-configuration";
+            //try
+            //{
+            if (config == null)
+            {
+                var discoAddress = Constants.DiscoveryEndpoint + "/.well-known/openid-configuration";
 
-            var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
-            config = await manager.GetConfigurationAsync();
+                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
+                config = await manager.GetConfigurationAsync();
+            }
+            //}
+            //catch(Exception eee)
+            //{
+            //    System.Diagnostics.Debug.WriteLine(eee.Message); 
+            //}
         }
 
         private void GetValuesBasedOnType(IEnumerable requestQuery, ref string code, ref string returnedState)
@@ -253,7 +293,7 @@ namespace Miracl
                 }
             }
 
-            if (queryType.IsSubclassOf(typeof(NameValueCollection)))
+            if (queryType.IsSubclassOf(typeof(NameValueCollection)) || queryType.Equals(typeof(NameValueCollection)))
             {
                 NameValueCollection nvc = requestQuery as NameValueCollection;
                 code = nvc["code"];
@@ -285,7 +325,9 @@ namespace Miracl
 
         private async Task<IEnumerable<SystemClaims.Claim>> GetUserInfoClaimsAsync(string accessToken)
         {
-            UserInfoClient client = new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken);
+            UserInfoClient client = this.httpMessageHandler != null
+                ? new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken, this.httpMessageHandler)
+                : new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken);
             
             this.UserInfo = await client.GetAsync();
 
