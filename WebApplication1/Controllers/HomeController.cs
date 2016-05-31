@@ -1,6 +1,7 @@
 ﻿using Miracl;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -20,11 +21,11 @@ namespace WebApplication4.Controllers
             if (Client == null)
             {
                 Client = new MiraclClient(new MiraclAuthenticationOptions
-                 {
-                     ClientId = "tkcrgjxg2epqo", //"4zfymvdt63cqi ",//
-                     ClientSecret = "5BbIxnqsEoufNp6g4uCXRDwQt61icF1O7IDXObwR8PU", //"kvqw_uvQYHsa_P9-x3DL-NqmfQDAM1lFSN85jbqLmd8", //
-                     AuthenticationType = "Cookies"
-                 });
+                {
+                    ClientId = ConfigurationManager.AppSettings["ClientId"],
+                    ClientSecret = ConfigurationManager.AppSettings["ClientSecret"],
+                    AuthenticationType = "Cookies"
+                });
             }
 
             var url = await Client.GetAuthorizationRequestUrlAsync("http://test.my");
