@@ -32,31 +32,13 @@ client = new MiraclClient(new MiraclAuthenticationOptions
 If the user is not authorized, (s)he should scan the qr barcode with his/her phone app and authorize on the MIRACL server. This could be done as pass the authorize uri to the qr bacode by `ViewBag.AuthorizationUri = client.GetAuthorizationRequestUrl(baseUri)` on the server and use it in the client with the following code:
 
 ```	
-<div class="inner cover">
-    <p class="lead">Please login to access the miracle world of Miracl.</p>
-    <p class="lead">
-        <a id="btmpin" href="#" class="btn btn-lg btn-default" onclick="javascript:onSubmitButtonClick(); return false;" data-uri="@ViewBag.AuthorizationUri">Login with M-Pin</a>
-    </p>
-    <p><label class="small"><input type="checkbox" onclick='$("#newuser").toggle()' /> Predefine username</label></p>
-    <p><input id="newuser" style="color:black;display:none" /></p>
-</div>
+<a id="btmpin"></a>
 
-@Scripts.Render("~/Scripts/mpin.js")
-
-<script type="text/javascript" language="javascript">
-    function onSubmitButtonClick() {
-        var b = document.getElementById("btmpin");
-        var atr = b.getAttribute("data-uri");
-        var prerollId = $("#newuser").val();                        
-        mpin.login({
-            authURL: atr,
-            prerollId: prerollId
-        });
-    }
-</script>
+@section scripts{
+<script src="http://demo.dev.miracl.net/mpin/mpad.js" x-authurl="@ViewBag.AuthorizationUri" x-element="btmpin"></script>
+}
 ```
 
-Note that the file `mpin.js` should be included in the `Scripts` directory of the project.
 When the user is being authorized, (s)he is returned to the `redirect uri` defined at creation of the application in the server. The redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the appBaseUri + `CallbackPath` value of the `MiraclAuthenticationOptions` object by default).
 
 To complete the authorization the query of the received request should be passed to `client.ValidateAuthorization(Request.QueryString)`. This method will return `null` if user denied authorization or a response with the access token if authorization succeeded. 

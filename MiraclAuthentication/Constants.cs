@@ -4,6 +4,6 @@
     {
         internal const string DefaultAuthenticationType = "MIRACL";
         internal const string CallbackString = "/SigninMiracl";
-        internal const string DiscoveryEndpoint = "http://mpinaas-demo.miracl.net:8001"; // "https://api.dev.miracl.net";
+        internal const string DiscoveryEndpoint = "http://api.dev.miracl.net";
     }
 }

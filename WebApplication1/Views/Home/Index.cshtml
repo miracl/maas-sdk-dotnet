@@ -19,26 +19,10 @@
                 <div class="inner cover">
                     <p class="lead">Please login to access the miracle world of Miracl.</p>
                     <p class="lead">
-                        <a id="btmpin" href="#" class="btn btn-lg btn-default" onclick="javascript:onSubmitButtonClick(); return false;" data-uri="@ViewBag.AuthorizationUri">Login with M-Pin</a>
-                    </p>
-                    <p><label class="small"><input type="checkbox" onclick='$("#newuser").toggle()' /> Predefine username</label></p>
-                    <p><input id="newuser" style="color:black;display:none" /></p>
-                </div>
-
-                @Scripts.Render("~/Scripts/mpin.js")
-
-                <script type="text/javascript" language="javascript">
-                    function onSubmitButtonClick() {
-                        var b = document.getElementById("btmpin");
-                        var atr = b.getAttribute("data-uri");
-                        var prerollId = $("#newuser").val();
-                        mpin.login({
-                            authURL: atr,
-                            prerollId: prerollId
-                        });
-                    }
-                </script>
-            }
+                        <a id="btmpin"></a>
+                    </p>                    
+                </div>                
+             }
         }
 
         <br />
@@ -67,4 +51,9 @@
             }
         </div>
     </div>
+    
+    @section scripts{
+    <script src="http://demo.dev.miracl.net/mpin/mpad.js"  x-authurl="@ViewBag.AuthorizationUri" x-element="btmpin"></script>
+    }
+
 </div>
