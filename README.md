@@ -35,7 +35,7 @@ If the user is not authorized, (s)he should scan the qr barcode with his/her pho
 <a id="btmpin"></a>
 
 @section scripts{
-<script src="http://demo.dev.miracl.net/mpin/mpad.js" x-authurl="@ViewBag.AuthorizationUri" x-element="btmpin"></script>
+<script src="http://demo.dev.miracl.net/mpin/mpad.js" data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>
 }
 ```
 
