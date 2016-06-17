@@ -16,21 +16,11 @@ namespace WebApplication4.Controllers
     {
         public async Task<ActionResult> Index()
         {
-            ViewBag.Code = Request.QueryString["code"] ?? "none";
-
-            var state = Request.QueryString["state"];
+            if (Request.QueryString == null || string.IsNullOrEmpty(Request.QueryString["code"]) || string.IsNullOrEmpty(Request.QueryString["state"]))
+            {
+                return View("Error");
+            }
             
-            ViewBag.State = state;
-
-            ViewBag.Error = Request.QueryString["error"] ?? "none";
-
-            return View();
-        }
-
-        [HttpPost]
-        [ActionName("Index")]
-        public async Task<ActionResult> GetToken()
-        {            
             IdentityModel.Client.TokenResponse response = await HomeController.Client.ValidateAuthorization(Request.QueryString);
             if (response != null)
             {
@@ -47,7 +37,7 @@ namespace WebApplication4.Controllers
                 ViewBag.AccessTokenParsed = ParseJwt(response.AccessToken);
             }
 
-            return View("Token", response);
+            return View(response);
         }
         
         private string ParseJwt(string token)

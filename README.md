@@ -54,7 +54,8 @@ Use `client.ClearUserInfo()` to clear user authorization status.
 
 ## Samples
 
-Replace `CLIENT_ID` and `CLIENT_SECRET` with valid data from the MIRACL server. `baseUri` should be the uri of your web application. 
+Replace `CLIENT_ID` and `CLIENT_SECRET` in the `web.config` file with your valid credential data from the MIRACL server. `baseUri` which is passed to the `MiraclClient.GetAuthorizationRequestUrlAsync` method should be the uri of your web application. 
+Note that the redirect uri, if not explicitly specified in the `MiraclAuthenticationOptions`, is constructed as `baseUri\SigninMiracl` (the default value of the `CallbackPath` property is `\SigninMiracl`) and it should be passed to the MIRACL server when requiring authentication credential.
 
 * `ManualAuthenticationApp` demonstates using the `MiraclClient` object to authenticate manually to the MIRACL server
 

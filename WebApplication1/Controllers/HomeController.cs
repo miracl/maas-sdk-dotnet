@@ -27,7 +27,7 @@ namespace WebApplication4.Controllers
                     AuthenticationType = "Cookies"
                 });
             }
-
+            
             var url = await Client.GetAuthorizationRequestUrlAsync("http://test.my");
             ViewBag.AuthorizationUri = url;
             return View();

@@ -2,8 +2,8 @@
     ViewBag.Title = "Home Page";
 }
 <div class="jumbotron">
-    <h1>Welcome to Miracl</h1>
-    <h2>Sample client application</h2>
+    <h1>.Net Web Example</h1>
+    <h2>Login Page</h2>
 </div>
 <div class="row">
     <div class="col-md-8">
@@ -12,12 +12,11 @@
         {
             if (User.Identity.IsAuthenticated)
             {
-                <button name="Logout" id="LogoutId" title="Test" value="Logout" >Logout</button>
+                <button name="Logout" id="LogoutId" title="Test" value="Logout">Logout</button>
             }
             else
             {
-                <div class="inner cover">
-                    <p class="lead">Please login to access the miracle world of Miracl.</p>
+                <div class="inner cover">                    
                     <p class="lead">
                         <a id="btmpin"></a>
                     </p>                    
@@ -29,27 +28,23 @@
         <br />
         <br />
 
+        
+    @if (User.Identity.IsAuthenticated)
+    {
         <div class="col-md-10">
             <h3>Identity</h3>
-            @if (User.Identity.IsAuthenticated)
-            {
-                <p>
-                    <dl>
-                        @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
-                        {
-                            <dt>@claim.Type</dt>
-                            <dd>@claim.Value</dd>
-                        }
-                    </dl>
-                </p>
-            }
-            else
-            {
-                <p>
-                    anonymous.
-                </p>
-            }
+            <p>
+                <dl>
+                    @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
+                {
+                        <dt>@claim.Type</dt>
+                        <dd>@claim.Value</dd>
+                    }
+                </dl>
+            </p>
         </div>
+    }            
+        
     </div>
     
     @section scripts{
