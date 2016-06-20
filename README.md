@@ -10,7 +10,7 @@
 
 # Miracl API
 
-## Details and usage for manual authentication
+## Details and usage for authentication
 
 All interaction with API happens through a `MiraclClient` object. Each application needs to construct an instance of `MiraclClient`.
 
@@ -57,7 +57,7 @@ Use `client.ClearUserInfo()` to clear user authorization status.
 Replace `CLIENT_ID` and `CLIENT_SECRET` in the `web.config` file with your valid credential data from the MIRACL server. `baseUri` which is passed to the `MiraclClient.GetAuthorizationRequestUrlAsync` method should be the uri of your web application. 
 Note that the redirect uri, if not explicitly specified in the `MiraclAuthenticationOptions`, is constructed as `baseUri\SigninMiracl` (the default value of the `CallbackPath` property is `\SigninMiracl`) and it should be passed to the MIRACL server when requiring authentication credential.
 
-* `ManualAuthenticationApp` demonstates using the `MiraclClient` object to authenticate manually to the MIRACL server
+* `MiraclAuthenticationApp` demonstates using the `MiraclClient` object to authenticate to the MIRACL server
 
 ## MIRACL .NET SDK Reference
 
