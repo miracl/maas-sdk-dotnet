@@ -28,7 +28,7 @@ namespace WebApplication4.Controllers
                 });
             }
             
-            var url = await Client.GetAuthorizationRequestUrlAsync("http://test.my");
+            var url = await Client.GetAuthorizationRequestUrlAsync(Request.Url.ToString());
             ViewBag.AuthorizationUri = url;
             return View();
         }

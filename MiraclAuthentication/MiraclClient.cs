@@ -231,8 +231,8 @@ namespace Miracl
                 throw new ArgumentException("MiraclAuthenticationOptions should be set!");
 
             this.State = stateString ?? Guid.NewGuid().ToString("N");
-            this.Nonce = Guid.NewGuid().ToString("N");
-            this.redirectUrl = baseUri + this.Options.CallbackPath;
+            this.Nonce = Guid.NewGuid().ToString("N");            
+            this.redirectUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
 
             // space separated
             string scope = string.Join(" ", this.Options.Scope);
