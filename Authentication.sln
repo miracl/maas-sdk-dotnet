@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{BAF9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationTests", "MiraclAuthenticationTests\MiraclAuthenticationTests.csproj", "{D4801C21-134A-4704-8909-B86810EBE7D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationApp", "WebApplication1\MiraclAuthenticationApp.csproj", "{F078FEEC-BA82-45ED-B9E6-086E396816BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationApp", "Sample\MiraclAuthenticationApp.csproj", "{F078FEEC-BA82-45ED-B9E6-086E396816BA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
