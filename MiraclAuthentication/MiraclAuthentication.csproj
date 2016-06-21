@@ -73,10 +73,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
-    <Compile Include="MiraclAuthenticationExtensions.cs" />
-    <Compile Include="MiraclAuthenticationMiddleware.cs" />
     <Compile Include="MiraclAuthenticationOptions.cs" />
-    <Compile Include="MiraclAuthenticationHandler.cs" />
     <Compile Include="MiraclClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
