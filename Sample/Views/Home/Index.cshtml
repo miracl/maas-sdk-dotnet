@@ -1,0 +1,54 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+<div class="jumbotron">
+    <h1>.Net Web Example</h1>
+    <h2>Login Page</h2>
+</div>
+<div class="row">
+    <div class="col-md-8">
+
+        @using (Html.BeginForm())
+        {
+            if (User.Identity.IsAuthenticated)
+            {
+                <button name="Logout" id="LogoutId" title="Test" value="Logout">Logout</button>
+            }
+            else
+            {
+                <div class="inner cover">                    
+                    <p class="lead">
+                        <a id="btmpin"></a>
+                    </p>                    
+                </div>                
+             }
+        }
+
+        <br />
+        <br />
+        <br />
+
+        
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="col-md-10">
+            <h3>Identity</h3>
+            <p>
+                <dl>
+                    @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
+                {
+                        <dt>@claim.Type</dt>
+                        <dd>@claim.Value</dd>
+                    }
+                </dl>
+            </p>
+        </div>
+    }            
+        
+    </div>
+    
+    @section scripts{
+    <script src="http://demo.dev.miracl.net/mpin/mpad.js"  data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>
+    }
+
+</div>
