@@ -81,10 +81,11 @@ namespace MiraclAuthenticationTests
             MiraclAuthenticationOptions options = new MiraclAuthenticationOptions
             {
                 ClientId = "MockClient",
-                ClientSecret = "MockSecret"
+                ClientSecret = "MockSecret",
+                BackchannelHttpHandler = mockHttp
             };
 
-            Client = new MiraclClient(options, mockHttp);
+            Client = new MiraclClient(options);
 
             // Inject the handler or client into your application code            
             NameValueCollection nvc = new NameValueCollection();
@@ -100,7 +101,7 @@ namespace MiraclAuthenticationTests
                 Client.config.UserInfoEndpoint = UserEndpoint;
             }
 
-            var response = Task.Run(async () => await Client.ValidateAuthorization(nvc, options, "http://nothing/SigninMiracl")).Result;
+            var response = Task.Run(async () => await Client.ValidateAuthorization(nvc, "http://nothing/SigninMiracl")).Result;
             Assert.IsNotNull(response);
             Assert.IsTrue(response.AccessToken.Equals("MockToken"));
             Assert.IsTrue(response.ExpiresIn.Equals(600));
