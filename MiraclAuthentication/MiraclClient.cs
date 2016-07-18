@@ -20,18 +20,12 @@ namespace Miracl
     /// </summary>
     public class MiraclClient
     {
-        #region Fields
-        public MiraclAuthenticationOptions Options;
-        public string State, Nonce;
-
-        internal UserInfoResponse UserInfo;
+        #region Fields     
         internal OpenIdConnectConfiguration config;
-
-        private string redirectUrl;
+        private UserInfoResponse userInfo;
+        private string callbackUrl;
         private TokenResponse accessTokenResponse;
-        private ClaimsIdentity identity;
         private List<SystemClaims.Claim> claims;
-        private HttpMessageHandler httpMessageHandler;
         #endregion
 
         #region C'tor
@@ -40,7 +34,6 @@ namespace Miracl
         /// </summary>
         public MiraclClient()
         {
-            ClearUserInfo();
         }
 
         /// <summary>
@@ -53,29 +46,44 @@ namespace Miracl
             this.Options = options;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MiraclClient"/> class.
-        /// </summary>
-        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
-        public MiraclClient(HttpMessageHandler innerHttpMessageHandler)
-            : this()
-        {
-            this.httpMessageHandler = innerHttpMessageHandler;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MiraclClient"/> class.
-        /// </summary>
-        /// <param name="options">The options which describes the authenticating parameters.</param>
-        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
-        public MiraclClient(MiraclAuthenticationOptions options, HttpMessageHandler innerHttpMessageHandler)
-            : this(options)
-        {
-            this.httpMessageHandler = innerHttpMessageHandler;
-        }
         #endregion
 
         #region Members
+        /// <summary>
+        /// Specifies the MIRACL client objects for authentication.
+        /// </summary>
+        /// <value>
+        /// The options values.
+        /// </value>
+        public MiraclAuthenticationOptions Options
+        {
+            get;
+            private set;
+        }
+        
+        /// <summary>
+        /// Opaque value set by the RP to maintain state between request and callback.
+        /// </summary>
+        /// </value>
+        /// The State value.
+        /// </value>
+        public string State
+        {
+            get;
+            internal set;
+        }
+
+        /// <summary>
+        /// String value used to associate a Client session with an ID Token, and to mitigate replay attacks.
+        /// </summary>
+        /// <value>
+        /// The Nonce value.
+        /// </value>
+        public string Nonce
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
         /// Gets the user identifier name when authenticated.
@@ -101,7 +109,7 @@ namespace Miracl
         {
             get
             {
-                return TryGetValue("sub");
+                return TryGetValue("email");
             }
         }
 
@@ -119,6 +127,11 @@ namespace Miracl
         /// <returns>The callback url.</returns>
         public async Task<string> GetAuthorizationRequestUrlAsync(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
+            if (!Uri.IsWellFormedUriString(baseUri, UriKind.RelativeOrAbsolute))
+            {
+                throw new ArgumentException("The baseUri is not well formed");
+            }
+
             await LoadOpenIdConnectConfigurationAsync();
             return GetAuthorizationRequestUrl(baseUri, options, stateString);
         }
@@ -128,38 +141,47 @@ namespace Miracl
         /// doesn't contain code and state.
         /// </summary>
         /// <param name="requestQuery">The query string returned from authorization URL.</param>
-        /// <param name="options">The options for authentication.</param>
         /// <param name="redirectUri">The redirect URI. If not specified, it will be taken from the authorization request.</param>
-        /// <param name="innerHttpMessageHandler">The HTTP handler stack to use for sending requests.</param>
         /// <returns>
         /// The access token from the authentication response.
         /// </returns>
-        public async Task<TokenResponse> ValidateAuthorization(IEnumerable requestQuery, MiraclAuthenticationOptions options = null, string redirectUri = "")
+        public async Task<TokenResponse> ValidateAuthorization(NameValueCollection requestQuery, string redirectUri = "")
         {
-            string code = null;
-            string returnedState = null;
-            this.Options = options ?? this.Options;
-
-            GetValuesBasedOnType(requestQuery, ref code, ref returnedState);
-
-            if (false == State.Equals(returnedState, StringComparison.Ordinal) ||
-                (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(redirectUrl)))
+            if (requestQuery == null)
             {
-                return null;
+                throw new ArgumentNullException("requestQuery should not be null!");
+            }
+
+            string code = requestQuery[Constants.Code];
+            string returnedState = requestQuery[Constants.State];            
+
+            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
+            {
+                throw new ArgumentException(string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State));
+            }
+
+            if (!State.Equals(returnedState, StringComparison.Ordinal))                
+            {
+                throw new ArgumentException("Invalid state!");
+            }
+
+            if (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(callbackUrl))
+            {
+                throw new ArgumentException("Empty redirect uri!");
             }
 
             if (string.IsNullOrEmpty(redirectUri))
             {
-                redirectUri = redirectUrl;
+                redirectUri = callbackUrl;
             }
 
-            var client = this.httpMessageHandler != null
-                          ? new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret, this.httpMessageHandler)
+            var client = this.Options.BackchannelHttpHandler != null
+                          ? new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret, this.Options.BackchannelHttpHandler)
                           : new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
 
             client.Timeout = this.Options.BackchannelTimeout;
             client.AuthenticationStyle = AuthenticationStyle.PostValues;
-
+            
             this.accessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
             return this.accessTokenResponse;
         }
@@ -177,11 +199,9 @@ namespace Miracl
                 this.Options = null;
             }
 
-            this.redirectUrl = null;
-            this.UserInfo = null;
-            this.identity = null;
+            this.callbackUrl = null;
+            this.userInfo = null;
             this.accessTokenResponse = null;
-            this.httpMessageHandler = null;
         }
 
         /// <summary>
@@ -202,20 +222,25 @@ namespace Miracl
         public async Task<ClaimsIdentity> GetIdentity(TokenResponse response)
         {
             if (Options == null)
-                throw new Exception("No Options for authentication! ValidateAuthorization method should be called first!");
+            {
+                throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
+            }
+
+            if (response == null)
+            {
+                throw new ArgumentNullException("Cannot get identity from null response!");
+            }
 
             await FillClaimsAsync(response);
-            this.identity = new ClaimsIdentity(this.claims,
+            return new ClaimsIdentity(this.claims,
                     Options.AuthenticationType,
                     ClaimsIdentity.DefaultNameClaimType,
                     ClaimsIdentity.DefaultRoleClaimType);
-
-            return this.identity;
         }
 
         #endregion
 
-        #region Internal
+        #region Private
         /// <summary>
         /// Constructs redirect URL for authorization via M-Pin system to be redirected to.
         /// </summary>
@@ -224,117 +249,68 @@ namespace Miracl
         /// <param name="stateString">The state string.</param>
         /// <returns>Uri for authorization to be redirected to.</returns>
         /// <exception cref="System.ArgumentException">MiraclAuthenticationOptions should be set!</exception>
-        internal string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
+        private string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
             this.Options = options ?? this.Options;
             if (this.Options == null)
-                throw new ArgumentException("MiraclAuthenticationOptions should be set!");
+            {
+                throw new ArgumentNullException("MiraclAuthenticationOptions should be set!");
+            }
 
             this.State = stateString ?? Guid.NewGuid().ToString("N");
-            this.Nonce = Guid.NewGuid().ToString("N");            
-            this.redirectUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
-
-            // space separated
-            string scope = string.Join(" ", this.Options.Scope);
-            if (string.IsNullOrEmpty(scope))
-            {
-                scope = "openid profile email";
-            }
+            this.Nonce = Guid.NewGuid().ToString("N");
+            this.callbackUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
 
             var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);
             return authRequest.CreateAuthorizeUrl(clientId: this.Options.ClientId,
-                                                    responseType: "code",
-                                                    scope: scope,
-                                                    redirectUri: redirectUrl,
+                                                    responseType: Constants.Code,
+                                                    scope: Constants.Scope,
+                                                    redirectUri: callbackUrl,
                                                     state: this.State,
                                                     nonce: this.Nonce);
         }
 
-        #endregion
-
-        #region Private
-
         private async Task LoadOpenIdConnectConfigurationAsync()
         {
-            //try
-            //{
             if (config == null)
             {
-                var discoAddress = Constants.DiscoveryEndpoint + "/.well-known/openid-configuration";
-
-                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
+                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(Constants.DiscoveryEndpoint);
                 config = await manager.GetConfigurationAsync();
             }
-            //}
-            //catch(Exception eee)
-            //{
-            //    System.Diagnostics.Debug.WriteLine(eee.Message); 
-            //}
         }
-
-        private void GetValuesBasedOnType(IEnumerable requestQuery, ref string code, ref string returnedState)
-        {
-            Type queryType = requestQuery.GetType();
-            if (queryType.Equals(typeof(ReadableStringCollection)))
-            {
-                var enumerator = requestQuery.GetEnumerator();
-                while (enumerator.MoveNext())
-                {
-                    KeyValuePair<string, string[]> current = (KeyValuePair<string, string[]>)enumerator.Current;
-                    switch (current.Key)
-                    {
-                        case "code":
-                            code = current.Value[0];
-                            break;
-                        case "state":
-                            returnedState = current.Value[0];
-                            break;
-                    }
-                }
-            }
-
-            if (queryType.IsSubclassOf(typeof(NameValueCollection)) || queryType.Equals(typeof(NameValueCollection)))
-            {
-                NameValueCollection nvc = requestQuery as NameValueCollection;
-                code = nvc["code"];
-                returnedState = nvc["state"];
-            }
-        }
-
+        
         private async Task FillClaimsAsync(TokenResponse response)
         {
-            if (!string.IsNullOrWhiteSpace(response.IdentityToken))
+            if (response == null || string.IsNullOrWhiteSpace(response.IdentityToken) || string.IsNullOrEmpty(response.AccessToken))
             {
-                this.claims = new List<SystemClaims.Claim>();
-                this.claims.Clear();
+                throw new ArgumentNullException("The response, its IdentityToken or AccessToken are null!");
+            }
 
-                if (!string.IsNullOrWhiteSpace(response.AccessToken))
-                {
-                    this.claims.AddRange(await GetUserInfoClaimsAsync(response.AccessToken));
+            this.claims = new List<SystemClaims.Claim>();
+            this.claims.Clear();
 
-                    this.claims.Add(new SystemClaims.Claim("access_token", response.AccessToken));
-                    this.claims.Add(new SystemClaims.Claim("expires_at", (DateTime.UtcNow.ToEpochTime() + response.ExpiresIn).ToDateTimeFromEpoch().ToString()));
-                }
+            this.claims.AddRange(await GetUserInfoClaimsAsync(response.AccessToken));
+            this.claims.Add(new Claim(Constants.AccessToken, response.AccessToken));
+            this.claims.Add(new Claim(Constants.ExpiresAt, (DateTime.UtcNow.ToEpochTime() + response.ExpiresIn).ToDateTimeFromEpoch().ToString()));
 
-                if (!string.IsNullOrWhiteSpace(response.RefreshToken))
-                {
-                    this.claims.Add(new SystemClaims.Claim("refresh_token", response.RefreshToken));
-                }
+            if (!string.IsNullOrWhiteSpace(response.RefreshToken))
+            {
+                this.claims.Add(new Claim(Constants.RefreshToken, response.RefreshToken));
             }
         }
 
-        private async Task<IEnumerable<SystemClaims.Claim>> GetUserInfoClaimsAsync(string accessToken)
+        private async Task<IEnumerable<Claim>> GetUserInfoClaimsAsync(string accessToken)
         {
-            UserInfoClient client = this.httpMessageHandler != null
-                ? new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken, this.httpMessageHandler)
+            UserInfoClient client = this.Options.BackchannelHttpHandler != null
+                ? new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken, this.Options.BackchannelHttpHandler)
                 : new UserInfoClient(new Uri(config.UserInfoEndpoint), accessToken);
-            
-            this.UserInfo = await client.GetAsync();
 
-            var claims = new List<SystemClaims.Claim>();
-            if (this.UserInfo.Claims != null)
+            this.userInfo = await client.GetAsync();
+
+            var claims = new List<Claim>();
+            if (this.userInfo.Claims != null)
             {
-                this.UserInfo.Claims.ToList().ForEach(ui => claims.Add(new SystemClaims.Claim(ui.Item1, ui.Item2)));
+                this.userInfo.Claims.ToList().ForEach(ui => claims.Add(new Claim(ui.Item1, ui.Item2)));
             }
 
             return claims;
@@ -342,11 +318,11 @@ namespace Miracl
 
         private string TryGetValue(string propertyName)
         {
-            if (this.UserInfo == null || this.UserInfo.JsonObject == null)
+            if (this.userInfo == null || this.userInfo.JsonObject == null)
                 return string.Empty;
 
             JToken value;
-            return this.UserInfo.JsonObject.TryGetValue(propertyName, out value) ? value.ToString() : null;
+            return this.userInfo.JsonObject.TryGetValue(propertyName, out value) ? value.ToString() : null;
         }
         #endregion
         #endregion
