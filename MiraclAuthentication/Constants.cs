@@ -4,7 +4,7 @@
     {
         internal const string DefaultAuthenticationType = "MIRACL";
         internal const string CallbackString = "/SigninMiracl";
-        internal const string ServerBaseAddress = "http://api.stg.miracl.net";
+        internal const string ServerBaseAddress = "https://api.mpin.io"; 
         internal const string DiscoveryEndpoint = ServerBaseAddress + "/.well-known/openid-configuration";
         internal const string State = "state";
         internal const string Code = "code";
