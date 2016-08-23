@@ -9,3 +9,7 @@ packages
 *.exe
 *.suo
 *.user
+
+target
+.coverage
+htmlcov
