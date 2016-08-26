@@ -1,0 +1,36 @@
+language: csharp
+
+solution: Authentication.sln
+
+sudo: false
+
+branches:
+  except:
+    - release
+
+branches:
+  only:
+    - master
+    - develop
+    - travis
+
+mono:
+  - 3.12.0
+  - latest
+  - weekly
+
+matrix:
+  allow_failures:
+    - mono: weekly
+
+before_install:
+  - if [ -n "$GH_USER" ]; then git config --global github.user ${GH_USER}; fi;
+  - if [ -n "$GH_TOKEN" ]; then git config --global github.token ${GH_TOKEN}; fi;
+
+install:
+  - nuget restore Authentication.sln
+  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory target
+
+script:
+  - xbuild /p:Configuration=Release Authentication.sln
+  - mono ./target/NUnit.Runners.2.6.4/tools/nunit-console.exe ./MiraclAuthenticationTests/bin/Release/MiraclAuthenticationTests.dll
