@@ -92,11 +92,15 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" />
+        <Reference Include="nunit.framework, Version=2.5.5.10112, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL" Condition=" '$(OS)' == 'Unix' ">
+            <SpecificVersion>False</SpecificVersion>
+        </Reference>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" Condition=" '$(OS)' != 'Unix' "/> />
       </ItemGroup>
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="VisualStudioTestingShim.cs" />
     <Compile Include="MiraclClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
