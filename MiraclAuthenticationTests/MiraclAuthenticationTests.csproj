@@ -85,18 +85,22 @@
     <Reference Include="System.Net.Http.WebRequest" />
   </ItemGroup>
   <Choose>
-    <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
+    <When Condition="('$(OS)' != 'Unix') and ('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
       <ItemGroup>
         <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
       </ItemGroup>
     </When>
     <Otherwise>
       <ItemGroup>
-        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" />
+        <Reference Include="nunit.framework, Version=2.5.5.10112, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL" Condition=" '$(OS)' == 'Unix' ">
+            <SpecificVersion>False</SpecificVersion>
+        </Reference>
+        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework" Condition=" '$(OS)' != 'Unix' "/>
       </ItemGroup>
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="VisualStudioTestingShim.cs" Condition=" '$(OS)' == 'Unix' "/>
     <Compile Include="MiraclClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

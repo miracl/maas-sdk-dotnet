@@ -9,3 +9,8 @@ packages
 *.exe
 *.suo
 *.user
+
+target
+.coverage
+.dotnetcli
+TestResult.xml
