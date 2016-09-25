@@ -126,12 +126,15 @@ namespace Miracl
         /// <param name="baseUri">The base URI of the calling app.</param>
         /// <param name="options">The options for authentication.</param>
         /// <param name="stateString">(Optional) Specify a new Open ID Connect state.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="baseUri"/> is not a valid Uri.
+        /// </exception>
         /// <returns>The callback url.</returns>
         public async Task<string> GetAuthorizationRequestUrlAsync(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
             if (!Uri.IsWellFormedUriString(baseUri, UriKind.RelativeOrAbsolute))
             {
-                throw new ArgumentException("The baseUri is not well formed");
+                throw new ArgumentException("The baseUri is not well formed", nameof(baseUri));
             }
 
             await LoadOpenIdConnectConfigurationAsync();
@@ -230,7 +233,7 @@ namespace Miracl
 
             if (response == null)
             {
-                throw new ArgumentNullException("Cannot get identity from null response!");
+                throw new ArgumentNullException(nameof(response));
             }
 
             await FillClaimsAsync(response);

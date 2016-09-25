@@ -1,78 +1,95 @@
-﻿using Microsoft.IdentityModel.Protocols;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System;
+using Microsoft.IdentityModel.Protocols;
 using Miracl;
 using RichardSzalay.MockHttp;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace MiraclAuthenticationTests
 {
-    [TestClass]
+    [TestFixture]
     public class MiraclClientTests
     {
-        private static MiraclClient Client = new MiraclClient();
         private const string TokenEndpoint = "http://nothing/token";
         private const string UserEndpoint = "http://nothing/user";
         private const string AuthorizeEndpoint = "http://nothing/authorize";
 
-        [TestMethod]
-        public void TestAuthorizationRequestUrl()
+        [Test]
+        public void Test_AuthorizationRequestUrl()
         {
-            Client = new MiraclClient();
-            IsClientClear(false);
+            MiraclClient client = new MiraclClient();
+            IsClientClear(client, false);
 
             // as it's mock, we don't have discovery and have to set the tokenendpoints manually
-            if (Client.config == null)
+            if (client.config == null)
             {
-                Client.config = new OpenIdConnectConfiguration();
-                Client.config.AuthorizationEndpoint = AuthorizeEndpoint;
+                client.config = new OpenIdConnectConfiguration();
+                client.config.AuthorizationEndpoint = AuthorizeEndpoint;
             }
 
-            var url = GetRequestUrl("http://nothing").Result;
-            Assert.IsNotNull(url);
-            Assert.IsNotNull(Client.State);
-            Assert.IsNotNull(Client.Nonce);
+            var url = GetRequestUrl(client, "http://nothing").Result;
+
+            Assert.That(url, Is.Not.Null);
+            Assert.That(client, Has.Property("State").Not.Null);
+            Assert.That(client, Has.Property("Nonce").Not.Null);
         }
 
-        [TestMethod]
-        public void TestClearUserInfo()
+        [Test]
+        public void Test_AuthorizationRequestUrl_NullUri()
         {
-            Client = new MiraclClient();
-            IsClientClear(false);
+            MiraclClient client = new MiraclClient();
+            Assert.That(() => GetRequestUrl(client, null),
+                Throws.TypeOf<ArgumentException>().And.Property("ParamName").EqualTo("baseUri"));
+        }
+
+        [Test]
+        public void Test_AuthorizationRequestUrl_InvalidUri()
+        {
+            MiraclClient client = new MiraclClient();
+            Assert.That(() => GetRequestUrl(client, "Not a URI"),
+                Throws.TypeOf<ArgumentException>().And.Property("ParamName").EqualTo("baseUri"));
+        }
+
+        [Test]
+        public void Test_ClearUserInfo()
+        {
+            MiraclClient client = new MiraclClient();
+            IsClientClear(client, false);
 
             // as it's mock, we don't have discovery and have to set the tokenendpoints manually
-            if (Client.config == null)
+            if (client.config == null)
             {
-                Client.config = new OpenIdConnectConfiguration();
-                Client.config.AuthorizationEndpoint = AuthorizeEndpoint;
+                client.config = new OpenIdConnectConfiguration();
+                client.config.AuthorizationEndpoint = AuthorizeEndpoint;
             }
 
-            var url = GetRequestUrl("http://nothing").Result;
-            Assert.IsNotNull(url);
-            Assert.IsNotNull(Client.State);
-            Assert.IsNotNull(Client.Nonce);
+            var url = GetRequestUrl(client, "http://nothing").Result;
+            Assert.That(url, Is.Not.Null);
+            Assert.That(client, Has.Property("State").Not.Null);
+            Assert.That(client, Has.Property("Nonce").Not.Null);
 
-            Client.ClearUserInfo(false);
-            Assert.IsNotNull(Client.State);
-            Assert.IsNotNull(Client.Nonce);
-            Assert.IsNotNull(Client.Options);
-            Assert.IsTrue(string.IsNullOrEmpty(Client.UserId));
-            Assert.IsTrue(string.IsNullOrEmpty(Client.Email));
-            Assert.IsFalse(Client.IsAuthorized());
+            client.ClearUserInfo(false);
+            Assert.That(client, Has.Property("State").Not.Null);
+            Assert.That(client, Has.Property("Nonce").Not.Null);
+            Assert.That(client, Has.Property("Options").Not.Null);
+            Assert.That(client, Has.Property("UserId").Null.Or.Property("UserId").Empty);
+            Assert.That(client, Has.Property("Email").Null.Or.Property("Email").Empty);
+            Assert.That(client.IsAuthorized(), Is.False);
 
-            Client.ClearUserInfo();
-            IsClientClear(false);
+            client.ClearUserInfo();
+            IsClientClear(client, false);
         }
 
-        private static async Task<string> GetRequestUrl(string baseUri)
+        private static async Task<string> GetRequestUrl(MiraclClient client, string baseUri)
         {
-            return await Client.GetAuthorizationRequestUrlAsync(baseUri, new MiraclAuthenticationOptions { ClientId = "ClientID" });
+            return await client.GetAuthorizationRequestUrlAsync(baseUri, new MiraclAuthenticationOptions { ClientId = "ClientID" });
         }
 
-        [TestMethod]
-        public void TestAuthorization()
+        [Test]
+        public void Test_Authorization()
         {
             var mockHttp = new MockHttpMessageHandler();
             mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"MockIdToken\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
@@ -85,49 +102,46 @@ namespace MiraclAuthenticationTests
                 BackchannelHttpHandler = mockHttp
             };
 
-            Client = new MiraclClient(options);
+            MiraclClient client = new MiraclClient(options);
 
             // Inject the handler or client into your application code
             NameValueCollection nvc = new NameValueCollection();
             nvc["code"] = "MockCode";
             nvc["state"] = "MockState";
-            Client.State = nvc["state"];
+            client.State = nvc["state"];
 
             // as it's mock, we don't have discovery and have to set the tokenendpoints manually
-            if (Client.config == null)
+            if (client.config == null)
             {
-                Client.config = new OpenIdConnectConfiguration();
-                Client.config.TokenEndpoint = TokenEndpoint;
-                Client.config.UserInfoEndpoint = UserEndpoint;
+                client.config = new OpenIdConnectConfiguration();
+                client.config.TokenEndpoint = TokenEndpoint;
+                client.config.UserInfoEndpoint = UserEndpoint;
             }
 
-            var response = Task.Run(async () => await Client.ValidateAuthorization(nvc, "http://nothing/SigninMiracl")).Result;
-            Assert.IsNotNull(response);
-            Assert.IsTrue(response.AccessToken.Equals("MockToken"));
-            Assert.IsTrue(response.ExpiresIn.Equals(600));
-            Assert.IsTrue(response.IdentityToken.Equals("MockIdToken"));
-            Assert.IsTrue(response.RefreshToken.Equals("MockRefresh"));
-            Assert.IsTrue(response.TokenType == "Bearer");
+            var response = Task.Run(async () => await client.ValidateAuthorization(nvc, "http://nothing/SigninMiracl")).Result;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response, Has.Property("AccessToken").EqualTo("MockToken"));
+            Assert.That(response, Has.Property("ExpiresIn").EqualTo(600));
+            Assert.That(response, Has.Property("IdentityToken").EqualTo("MockIdToken"));
+            Assert.That(response, Has.Property("RefreshToken").EqualTo("MockRefresh"));
+            Assert.That(response, Has.Property("TokenType").EqualTo("Bearer"));
 
-            var identity = Task.Run(async () => await Client.GetIdentity(response)).Result;
-            Assert.IsNotNull(identity);
-            Assert.IsTrue(identity.IsAuthenticated);
-            Assert.IsTrue(identity.AuthenticationType.Equals("MIRACL"));
-            Assert.IsNotNull(identity.Claims);
+            var identity = Task.Run(async () => await client.GetIdentity(response)).Result;
+            Assert.That(identity, Is.Not.Null);
+            Assert.That(identity, Has.Property("IsAuthenticated").True);
+            Assert.That(identity, Has.Property("AuthenticationType").EqualTo("MIRACL"));
+            Assert.That(identity, Has.Property("Claims").Not.Null);
             Assert.IsTrue(((Claim)(identity.Claims.ElementAt(0))).Type.Equals("sub"));
             Assert.IsTrue(((Claim)(identity.Claims.ElementAt(0))).Value.Equals("noone@miracl.com"));
         }
 
-        private static void IsClientClear(bool isAuthorized)
+        private static void IsClientClear(MiraclClient client, bool isAuthorized)
         {
-            Assert.IsNull(Client.Nonce);
-            Assert.IsNull(Client.State);
-            Assert.IsTrue(string.IsNullOrEmpty(Client.UserId));
-            Assert.IsTrue(string.IsNullOrEmpty(Client.Email));
-            if (isAuthorized)
-                Assert.IsTrue(Client.IsAuthorized());
-            else
-                Assert.IsFalse(Client.IsAuthorized());
+            Assert.That(client, Has.Property("State").Null);
+            Assert.That(client, Has.Property("Nonce").Null);
+            Assert.That(client, Has.Property("UserId").Null.Or.Property("UserId").Empty);
+            Assert.That(client, Has.Property("Email").Null.Or.Property("Email").Empty);
+            Assert.That(client.IsAuthorized(), Is.EqualTo(isAuthorized));
         }
     }
 }
