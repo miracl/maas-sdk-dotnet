@@ -117,6 +117,7 @@ namespace Miracl
 
         #region Methods
         #region Public
+
         /// <summary>
         /// Constructs redirect URL for authorization via M-Pin system. After URL
         /// redirects back, pass the query string to ValidateAuthorization method to complete
@@ -124,6 +125,7 @@ namespace Miracl
         /// </summary>
         /// <param name="baseUri">The base URI of the calling app.</param>
         /// <param name="options">The options for authentication.</param>
+        /// <param name="stateString">(Optional) Specify a new Open ID Connect state.</param>
         /// <returns>The callback url.</returns>
         public async Task<string> GetAuthorizationRequestUrlAsync(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
