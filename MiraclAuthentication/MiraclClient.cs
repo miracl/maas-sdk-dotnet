@@ -154,7 +154,7 @@ namespace Miracl
         {
             if (requestQuery == null)
             {
-                throw new ArgumentNullException("requestQuery should not be null!");
+                throw new ArgumentNullException(nameof(requestQuery));
             }
 
             string code = requestQuery[Constants.Code];
@@ -162,7 +162,8 @@ namespace Miracl
 
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
             {
-                throw new ArgumentException(string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State));
+                throw new ArgumentException(
+                    $"requestQuery does not have the proper \"{Constants.Code}\" and \"{Constants.State}\" parameteres.", nameof(requestQuery));
             }
 
             if (!State.Equals(returnedState, StringComparison.Ordinal))
@@ -226,14 +227,14 @@ namespace Miracl
         /// <exception cref="System.Exception">ValidateAuthorization method should be called first!</exception>
         public async Task<ClaimsIdentity> GetIdentity(TokenResponse response)
         {
-            if (Options == null)
-            {
-                throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
-            }
-
             if (response == null)
             {
                 throw new ArgumentNullException(nameof(response));
+            }
+
+            if (Options == null)
+            {
+                throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
             }
 
             await FillClaimsAsync(response);

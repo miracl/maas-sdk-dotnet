@@ -143,5 +143,43 @@ namespace MiraclAuthenticationTests
             Assert.That(client, Has.Property("Email").Null.Or.Property("Email").Empty);
             Assert.That(client.IsAuthorized(), Is.EqualTo(isAuthorized));
         }
+
+        [Test]
+        public void Test_ValidateAuthorization_NullRequestQuery()
+        {
+            Assert.That(() => new MiraclClient().ValidateAuthorization(null),
+                Throws.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("requestQuery"));
+        }
+
+        [Test]
+        public void Test_ValidateAuthorization_MissingCode()
+        {
+            NameValueCollection nameValueCollection;
+
+            nameValueCollection = new NameValueCollection();
+            nameValueCollection[Constants.State] = "state";
+
+            Assert.That(() => new MiraclClient().ValidateAuthorization(nameValueCollection),
+                Throws.TypeOf<ArgumentException>().And.Property("ParamName").EqualTo("requestQuery"));
+        }
+
+        [Test]
+        public void Test_ValidateAuthorization_MissingStatue()
+        {
+            NameValueCollection nameValueCollection;
+
+            nameValueCollection = new NameValueCollection();
+            nameValueCollection[Constants.Code] = "code";
+
+            Assert.That(() => new MiraclClient().ValidateAuthorization(nameValueCollection),
+                Throws.TypeOf<ArgumentException>().And.Property("ParamName").EqualTo("requestQuery"));
+        }
+
+        [Test]
+        public void Test_GetIdentity_NullResponse()
+        {
+            Assert.That(() => new MiraclClient().GetIdentity(null),
+                Throws.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("response"));
+        }
     }
 }
