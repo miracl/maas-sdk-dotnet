@@ -131,8 +131,8 @@ namespace MiraclAuthenticationTests
             Assert.That(identity, Has.Property("IsAuthenticated").True);
             Assert.That(identity, Has.Property("AuthenticationType").EqualTo("MIRACL"));
             Assert.That(identity, Has.Property("Claims").Not.Null);
-            Assert.IsTrue(((Claim)(identity.Claims.ElementAt(0))).Type.Equals("sub"));
-            Assert.IsTrue(((Claim)(identity.Claims.ElementAt(0))).Value.Equals("noone@miracl.com"));
+            Assert.That(((Claim)(identity.Claims.First())).Type, Is.EqualTo("sub"));
+            Assert.That(((Claim)(identity.Claims.First())).Value, Is.EqualTo("noone@miracl.com"));
         }
 
         private static void IsClientClear(MiraclClient client, bool isAuthorized)
