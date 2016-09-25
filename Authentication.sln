@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthentication", "MiraclAuthentication\MiraclAuthentication.csproj", "{F3E1857B-336C-471B-B8AA-18781FC407AD}"
 EndProject
@@ -12,6 +12,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationTests", "MiraclAuthenticationTests\MiraclAuthenticationTests.csproj", "{D4801C21-134A-4704-8909-B86810EBE7D8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiraclAuthenticationApp", "Sample\MiraclAuthenticationApp.csproj", "{F078FEEC-BA82-45ED-B9E6-086E396816BA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F1945AEF-8BE1-4EAC-BBC9-289477A63EBB}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+		VERSION = VERSION
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

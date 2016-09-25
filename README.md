@@ -71,7 +71,7 @@ Note that the redirect uri, if not explicitly specified in the `MiraclAuthentica
 
 ## MIRACL .NET SDK Reference
 
- MIRACL .NET SDK library is based on the following library
+ MIRACL .NET SDK library is based on the following libraries:
 
 * [IdentityModel](https://github.com/IdentityModel/IdentityModel)
 * [Microsoft.IdentityModel.Protocol.Extensions](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet)
