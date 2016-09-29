@@ -163,7 +163,7 @@ namespace Miracl
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
             {
                 throw new ArgumentException(
-                    $"requestQuery does not have the proper \"{Constants.Code}\" and \"{Constants.State}\" parameteres.", nameof(requestQuery));
+                    string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), nameof(requestQuery));
             }
 
             if (!State.Equals(returnedState, StringComparison.Ordinal))
