@@ -33,4 +33,4 @@ install:
 
 script:
   - xbuild /p:Configuration=Release Authentication.sln
-  - mono ./target/NUnit.Runners.3.4.1/tools/nunit-console.exe ./MiraclAuthenticationTests/bin/Release/MiraclAuthenticationTests.dll
+  - mono ./target/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./MiraclAuthenticationTests/bin/Release/MiraclAuthenticationTests.dll
