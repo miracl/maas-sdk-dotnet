@@ -29,8 +29,8 @@ before_install:
 
 install:
   - nuget restore Authentication.sln
-  - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory target
+  - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory target
 
 script:
   - xbuild /p:Configuration=Release Authentication.sln
-  - mono ./target/NUnit.Runners.2.6.4/tools/nunit-console.exe ./MiraclAuthenticationTests/bin/Release/MiraclAuthenticationTests.dll
+  - mono ./target/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./MiraclAuthenticationTests/bin/Release/MiraclAuthenticationTests.dll

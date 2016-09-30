@@ -117,6 +117,7 @@ namespace Miracl
 
         #region Methods
         #region Public
+
         /// <summary>
         /// Constructs redirect URL for authorization via M-Pin system. After URL
         /// redirects back, pass the query string to ValidateAuthorization method to complete
@@ -124,12 +125,16 @@ namespace Miracl
         /// </summary>
         /// <param name="baseUri">The base URI of the calling app.</param>
         /// <param name="options">The options for authentication.</param>
+        /// <param name="stateString">(Optional) Specify a new Open ID Connect state.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="baseUri"/> is not a valid Uri.
+        /// </exception>
         /// <returns>The callback url.</returns>
         public async Task<string> GetAuthorizationRequestUrlAsync(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
         {
             if (!Uri.IsWellFormedUriString(baseUri, UriKind.RelativeOrAbsolute))
             {
-                throw new ArgumentException("The baseUri is not well formed");
+                throw new ArgumentException("The baseUri is not well formed", nameof(baseUri));
             }
 
             await LoadOpenIdConnectConfigurationAsync();
@@ -149,7 +154,7 @@ namespace Miracl
         {
             if (requestQuery == null)
             {
-                throw new ArgumentNullException("requestQuery should not be null!");
+                throw new ArgumentNullException(nameof(requestQuery));
             }
 
             string code = requestQuery[Constants.Code];
@@ -157,7 +162,8 @@ namespace Miracl
 
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
             {
-                throw new ArgumentException(string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State));
+                throw new ArgumentException(
+                    string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), nameof(requestQuery));
             }
 
             if (!State.Equals(returnedState, StringComparison.Ordinal))
@@ -221,14 +227,14 @@ namespace Miracl
         /// <exception cref="System.Exception">ValidateAuthorization method should be called first!</exception>
         public async Task<ClaimsIdentity> GetIdentity(TokenResponse response)
         {
+            if (response == null)
+            {
+                throw new ArgumentNullException(nameof(response));
+            }
+
             if (Options == null)
             {
                 throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
-            }
-
-            if (response == null)
-            {
-                throw new ArgumentNullException("Cannot get identity from null response!");
             }
 
             await FillClaimsAsync(response);
