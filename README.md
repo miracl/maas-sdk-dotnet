@@ -45,9 +45,10 @@ If the user is not authorized, (s)he should scan the qr barcode with his/her pho
 <a id="btmpin"></a>
 
 @section scripts{
-<script src="http://demo.dev.miracl.net/mpin/mpad.js" data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>
+<script src="<<Insert correct mpad url here>>" data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>
 }
 ```
+Please refer to your distributor-specific documentation to find the correct url for the mpad.js `script src`
 
 When the user is being authorized, (s)he is returned to the `redirect uri` defined at creation of the application in the server. The redirect uri should be the same as the one used by the `MiraclClient` object (constructed by the appBaseUri + `CallbackPath` value of the `MiraclAuthenticationOptions` object by default).
 
@@ -76,4 +77,3 @@ Note that the redirect uri, if not explicitly specified in the `MiraclAuthentica
 * [IdentityModel](https://github.com/IdentityModel/IdentityModel)
 * [Microsoft.IdentityModel.Protocol.Extensions](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet)
 * [Microsoft.Owin.Security](http://www.nuget.org/packages/Microsoft.Owin.Security/)
-
