@@ -44,12 +44,6 @@ namespace WebApplication4.Controllers
 
             return RedirectToAction("Index");
         }
-
-        public ActionResult Contact()
-        {
-            ViewBag.Message = "Your contact page.";
-            return View();
-        }
     }
 }
 

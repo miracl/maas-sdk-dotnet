@@ -1,15 +1,13 @@
 ﻿using IdentityModel;
 using IdentityModel.Client;
 using Microsoft.IdentityModel.Protocols;
-using Microsoft.Owin;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Net.Http;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SystemClaims = System.Security.Claims;
 
@@ -117,7 +115,6 @@ namespace Miracl
 
         #region Methods
         #region Public
-
         /// <summary>
         /// Constructs redirect URL for authorization via M-Pin system. After URL
         /// redirects back, pass the query string to ValidateAuthorization method to complete
@@ -264,7 +261,15 @@ namespace Miracl
             }
 
             this.State = stateString ?? Guid.NewGuid().ToString("N");
-            this.Nonce = Guid.NewGuid().ToString("N");
+           
+            byte[] nonceBytes = new byte[16]; 
+            using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
+            {
+                randomNumberGenerator.GetBytes(nonceBytes);
+            }
+
+            this.Nonce = string.Concat(nonceBytes.Select(b => b.ToString("x2")));
+
             this.callbackUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
 
             var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);

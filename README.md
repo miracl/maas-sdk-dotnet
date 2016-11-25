@@ -63,6 +63,46 @@ Use `client.ClearUserInfo(false)` to drop user identity data.
 
 Use `client.ClearUserInfo()` to clear user authorization status.
 
+### Use PrerollId
+
+In order to use PrerollId functionality in your web app, you should set `data-prerollid` parameter with the desired preroll id to the data element passed for authentication:
+```	
+<a id="{{buttonElementID}}" data-prerollid="{{prerollID}}></a>
+```
+
+In the current app this could be achieved with the following code:
+```
+<p>
+	<a id="btmpin"></a>
+</p>
+<p>
+	@Html.CheckBox("UsePrerollId") &nbsp; Use PrerollId login
+	<div hidden="hidden">
+		<label for="PrerollId" id="lblPrerollId">PrerollId</label>:
+		<br />
+		@Html.TextBox("PrerollId", string.Empty, new { style = "width:500px" })
+	</div>
+</p>
+
+<script>
+	$("#UsePrerollId").change(
+	function () {
+		var prerollIdContainer = $("#PrerollId").parent();
+		prerollIdContainer.toggle();
+		if (prerollIdContainer.is(":visible")) {
+			$('#PrerollId').change(function (event) {
+				var prerollIdData = document.getElementById('PrerollId').value;
+				$('#btmpin').attr("data-prerollid", prerollIdData);
+			});
+
+		}
+		else {
+			$('#btmpin').removeAttr("data-prerollid");
+		}
+	});
+</script>
+```
+
 ## Samples
 
 Replace `CLIENT_ID` and `CLIENT_SECRET` in the `web.config` file with your valid credential data from the MIRACL server. `baseUri` which is passed to the `MiraclClient.GetAuthorizationRequestUrlAsync` method should be the uri of your web application.

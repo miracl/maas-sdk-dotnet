@@ -36,6 +36,8 @@ namespace WebApplication4.Controllers
             {
                 ViewBag.AccessTokenParsed = ParseJwt(response.AccessToken);
             }
+            
+            ViewBag.Client = HomeController.Client;
 
             return View(response);
         }

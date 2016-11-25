@@ -6,7 +6,12 @@
 <h2>Logged in session</h2>
 
 <br />
-<div class="row">
+<div >
+    Hi, <b>@ViewBag.Client.UserId</b> !
+</div>
+
+<br />
+<div>
     @using (Html.BeginForm("Index", "Home", FormMethod.Post))
     {
         <button name="Logout" id="LogoutId" title="Test" value="Logout" type="submit">Logout</button>
