@@ -131,7 +131,7 @@ namespace Miracl
         {
             if (!Uri.IsWellFormedUriString(baseUri, UriKind.RelativeOrAbsolute))
             {
-                throw new ArgumentException("The baseUri is not well formed", nameof(baseUri));
+                throw new ArgumentException("The baseUri is not well formed", "baseUri");
             }
 
             await LoadOpenIdConnectConfigurationAsync();
@@ -151,7 +151,7 @@ namespace Miracl
         {
             if (requestQuery == null)
             {
-                throw new ArgumentNullException(nameof(requestQuery));
+                throw new ArgumentNullException("requestQuery");
             }
 
             string code = requestQuery[Constants.Code];
@@ -160,7 +160,7 @@ namespace Miracl
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
             {
                 throw new ArgumentException(
-                    string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), nameof(requestQuery));
+                    string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), "requestQuery");
             }
 
             if (!State.Equals(returnedState, StringComparison.Ordinal))
@@ -226,7 +226,7 @@ namespace Miracl
         {
             if (response == null)
             {
-                throw new ArgumentNullException(nameof(response));
+                throw new ArgumentNullException("response");
             }
 
             if (Options == null)

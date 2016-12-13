@@ -110,6 +110,17 @@ Note that the redirect uri, if not explicitly specified in the `MiraclAuthentica
 
 * `MiraclAuthenticationApp` demonstrates the usage of `MiraclClient` to authenticate to the MIRACL server
 
+## Setting-up outbound HTTP Proxy Server
+
+In order to make the SDK and the Sample Web App work using a proxy server, you should setup such using the Windows Internet configuration options:
+
+1. Go to _Control Panel_ -> _Network and Internet_ -> _Internet Options_
+1. Select the _Connections_ tab and the click the _LAN Settings_ button
+1. Select the option _Use a proxy server for your LAN_ and specify the desired proxy server _Address_ and _Port_
+1. Click the _OK_ button
+
+After this configuration, the SDK and the Sample app should work through the specified proxy server.
+
 ## MIRACL .NET SDK Reference
 
  MIRACL .NET SDK library is based on the following libraries:
