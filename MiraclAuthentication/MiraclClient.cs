@@ -285,7 +285,8 @@ namespace Miracl
         {
             if (config == null)
             {
-                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(Constants.DiscoveryEndpoint);
+                string discoveryAddress = string.IsNullOrEmpty(this.Options.PlatformAPIAddress) ? Constants.ServerBaseAddress : this.Options.PlatformAPIAddress;
+                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoveryAddress + Constants.DiscoveryPath);
                 config = await manager.GetConfigurationAsync();
             }
         }

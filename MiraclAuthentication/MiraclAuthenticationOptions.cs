@@ -56,5 +56,15 @@ namespace Miracl
         /// Gets or sets the type used to secure data handled by the middleware.
         /// </summary>
         public ISecureDataFormat<AuthenticationProperties> StateDataFormat { get; set; }
+
+        /// <summary>
+        /// Gets or sets the platform API address.
+        /// If not set, the default is used. 
+        /// For advanced usage only!
+        /// </summary>
+        /// <value>
+        /// The platform API address.
+        /// </value>
+        public string PlatformAPIAddress { get; set; }
     }
 }

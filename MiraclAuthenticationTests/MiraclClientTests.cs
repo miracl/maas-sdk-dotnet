@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Microsoft.Owin.Security.DataHandler;
 
 namespace MiraclAuthenticationTests
 {
@@ -95,12 +96,14 @@ namespace MiraclAuthenticationTests
             mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"MockIdToken\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
             mockHttp.When(UserEndpoint).Respond("application/json", "{\"sub\":\"noone@miracl.com\"}");
 
-            MiraclAuthenticationOptions options = new MiraclAuthenticationOptions
-            {
-                ClientId = "MockClient",
-                ClientSecret = "MockSecret",
-                BackchannelHttpHandler = mockHttp
-            };
+            MiraclAuthenticationOptions options = new MiraclAuthenticationOptions();
+            options.ClientId = "MockClient";
+            options.ClientSecret = "MockSecret";
+            options.BackchannelTimeout = TimeSpan.FromMinutes(1);
+            options.BackchannelHttpHandler = mockHttp;
+            options.PlatformAPIAddress = "https://test.me";
+            options.CallbackPath = new Microsoft.Owin.PathString("/CallbackPath");
+            options.StateDataFormat = new PropertiesDataFormat(null);
 
             MiraclClient client = new MiraclClient(options);
 
