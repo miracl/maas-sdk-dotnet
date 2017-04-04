@@ -279,11 +279,5 @@ namespace MiraclAuthenticationTests
             client.userInfo = new IdentityModel.Client.UserInfoResponse("{\"sub\":\"noone@miracl.com\"}");
             Assert.That(client.TryGetValue("sub"), Is.EqualTo("noone@miracl.com"));
         }
-
-        [Test]
-        public void Test_LoadOpenIdConnectConfigurationAsync()
-        {
-            // todo... 
-        }
     }
 }
