@@ -20,8 +20,8 @@ namespace Miracl
     {
         #region Fields
         internal OpenIdConnectConfiguration config;
-        private UserInfoResponse userInfo;
-        private string callbackUrl;
+        internal UserInfoResponse userInfo;
+        internal string callbackUrl;
         private TokenResponse accessTokenResponse;
         private List<SystemClaims.Claim> claims;
         #endregion
@@ -154,6 +154,11 @@ namespace Miracl
                 throw new ArgumentNullException("requestQuery");
             }
 
+            if (Options == null)
+            {
+                throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
+            }
+
             string code = requestQuery[Constants.Code];
             string returnedState = requestQuery[Constants.State];
 
@@ -259,7 +264,7 @@ namespace Miracl
             {
                 throw new ArgumentNullException("MiraclAuthenticationOptions should be set!");
             }
-
+            
             this.State = stateString ?? Guid.NewGuid().ToString("N");
            
             byte[] nonceBytes = new byte[16]; 
@@ -291,7 +296,7 @@ namespace Miracl
             }
         }
 
-        private async Task FillClaimsAsync(TokenResponse response)
+        internal async Task FillClaimsAsync(TokenResponse response)
         {
             if (response == null || string.IsNullOrWhiteSpace(response.IdentityToken) || string.IsNullOrEmpty(response.AccessToken))
             {
@@ -328,7 +333,7 @@ namespace Miracl
             return claims;
         }
 
-        private string TryGetValue(string propertyName)
+        internal string TryGetValue(string propertyName)
         {
             if (this.userInfo == null || this.userInfo.JsonObject == null)
                 return string.Empty;
