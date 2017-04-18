@@ -8,6 +8,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using SystemClaims = System.Security.Claims;
 
@@ -80,7 +81,7 @@ namespace Miracl
         public string Nonce
         {
             get;
-            private set;
+            internal set;
         }
 
         /// <summary>
@@ -134,6 +135,12 @@ namespace Miracl
                 throw new ArgumentException("The baseUri is not well formed", "baseUri");
             }
 
+            this.Options = options ?? this.Options;
+            if (this.Options == null)
+            {
+                throw new ArgumentNullException("MiraclAuthenticationOptions should be set!");
+            }
+
             await LoadOpenIdConnectConfigurationAsync();
             return GetAuthorizationRequestUrl(baseUri, options, stateString);
         }
@@ -153,12 +160,12 @@ namespace Miracl
             {
                 throw new ArgumentNullException("requestQuery");
             }
-
+  
             if (Options == null)
             {
                 throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
             }
-
+  
             string code = requestQuery[Constants.Code];
             string returnedState = requestQuery[Constants.State];
 
@@ -167,30 +174,33 @@ namespace Miracl
                 throw new ArgumentException(
                     string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), "requestQuery");
             }
-
+  
             if (!State.Equals(returnedState, StringComparison.Ordinal))
             {
                 throw new ArgumentException("Invalid state!");
             }
-
+  
             if (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(callbackUrl))
             {
                 throw new ArgumentException("Empty redirect uri!");
             }
-
+  
             if (string.IsNullOrEmpty(redirectUri))
             {
                 redirectUri = callbackUrl;
             }
-
+  
             var client = this.Options.BackchannelHttpHandler != null
                           ? new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret, this.Options.BackchannelHttpHandler)
                           : new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
 
             client.Timeout = this.Options.BackchannelTimeout;
             client.AuthenticationStyle = AuthenticationStyle.PostValues;
-
             this.accessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
+            if (this.accessTokenResponse == null || !IsNonceValid(this.accessTokenResponse.IdentityToken))
+            {
+                throw new ArgumentException("Invalid nonce!");
+            }
             return this.accessTokenResponse;
         }
 
@@ -258,15 +268,8 @@ namespace Miracl
         /// <returns>Uri for authorization to be redirected to.</returns>
         /// <exception cref="System.ArgumentException">MiraclAuthenticationOptions should be set!</exception>
         private string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
-        {
-            this.Options = options ?? this.Options;
-            if (this.Options == null)
-            {
-                throw new ArgumentNullException("MiraclAuthenticationOptions should be set!");
-            }
-            
+        {   
             this.State = stateString ?? Guid.NewGuid().ToString("N");
-           
             byte[] nonceBytes = new byte[16]; 
             using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
             {
@@ -274,7 +277,6 @@ namespace Miracl
             }
 
             this.Nonce = string.Concat(nonceBytes.Select(b => b.ToString("x2")));
-
             this.callbackUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
 
             var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);
@@ -294,6 +296,35 @@ namespace Miracl
                 var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoveryAddress + Constants.DiscoveryPath);
                 config = await manager.GetConfigurationAsync();
             }
+        }
+
+        private bool IsNonceValid(string identityToken)
+        {
+            if (string.IsNullOrEmpty(identityToken))
+            {
+                return false;
+            }
+
+            var idToken = ParseJwt(identityToken);
+            var nonce = idToken.GetValue("nonce");
+            if (nonce == null || string.IsNullOrEmpty(nonce.ToString()))
+            {
+                return false;
+            }
+
+            return nonce.ToString().Equals(this.Nonce);
+        }
+
+        private JObject ParseJwt(string token)
+        {
+            if (!token.Contains("."))
+            {
+                throw new ArgumentException("Wrong token data!");
+            }
+
+            var parts = token.Split('.');
+            var part = Encoding.UTF8.GetString(Base64Url.Decode(parts[1]));
+            return JObject.Parse(part);
         }
 
         internal async Task FillClaimsAsync(TokenResponse response)
