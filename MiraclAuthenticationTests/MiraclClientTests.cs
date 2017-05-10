@@ -134,8 +134,8 @@ namespace MiraclAuthenticationTests
                 client.config.TokenEndpoint = TokenEndpoint;
                 client.config.UserInfoEndpoint = UserEndpoint;
             }
-            
-            var response = Task.Run(async () => await client.ValidateAuthorization(nvc, "http://nothing/SigninMiracl")).Result;
+
+            var response = Task.Run(async () => await client.ValidateAuthorization(nvc, "http://nothing/login")).Result;
             Assert.That(response, Is.Not.Null);
             Assert.That(response, Has.Property("AccessToken").EqualTo("MockToken"));
             Assert.That(response, Has.Property("ExpiresIn").EqualTo(600));

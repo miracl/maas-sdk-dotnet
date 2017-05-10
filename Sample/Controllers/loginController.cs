@@ -12,7 +12,7 @@ using System.Web.Mvc;
 
 namespace WebApplication4.Controllers
 {
-    public class SigninMiraclController : Controller
+    public class loginController : Controller
     {
         public async Task<ActionResult> Index()
         {

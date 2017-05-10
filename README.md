@@ -18,6 +18,14 @@
 1. Open `Authentication.sln` with Visual Studio and build
 1. Reference the `MiraclAuthentication` project in your ASP.NET project so you could authenticate to the MIRACL server
 
+## Dependencies
+
+MIRACL .NET SDK has the following dependencies:
+
+1. .NET framework 4.5 and above
+1.  MS Visual Studio 2013 and above
+1.  [IdentityModel 1.x](https://www.nuget.org/packages/IdentityModel/) (NuGet package. Note the SDK is not compatible with version 2.x - use [MIRACL .NET SDK v.2](https://github.com/miracl/maas-sdk-dotnet-v2) which implements IdentityModel v.2)
+
 # Miracl API
 
 ## Details and usage for authentication
