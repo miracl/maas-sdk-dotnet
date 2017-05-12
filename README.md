@@ -1,6 +1,6 @@
 # maas-sdk-dotnet
 
-[![Master Build Status](https://secure.travis-ci.org/miracl/maas-sdk-dotnet.png?branch=master)](https://travis-ci.org/miracl/maas-sdk-dotnet?branch=master)
+[![Master Build Status](https://ci.appveyor.com/api/projects/status/e5835ag1whkpxtpi/branch/master?svg=true)](https://ci.appveyor.com/project/simeon-aladjem/maas-sdk-dotnet/branch/master)
 [![Master Coverage Status](https://coveralls.io/repos/miracl/maas-sdk-dotnet/badge.svg?branch=master&service=github)](https://coveralls.io/github/miracl/maas-sdk-dotnet?branch=master)
 
 * **category**:    SDK
