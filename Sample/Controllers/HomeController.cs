@@ -9,7 +9,7 @@ using System.Web;
 using System.Web.Mvc;
 using System.Web.UI;
 
-namespace WebApplication4.Controllers
+namespace SampleWebApp.Controllers
 {
 
     public class HomeController : Controller
@@ -17,6 +17,12 @@ namespace WebApplication4.Controllers
         internal static MiraclClient Client;
 
         public async Task<ActionResult> Index()
+        {            
+            ViewBag.AuthorizationUri = await GetUrl(Request.Url.ToString());
+            return View();
+        }
+
+        internal static async Task<string> GetUrl(string url)
         {
             if (Client == null)
             {
@@ -28,9 +34,7 @@ namespace WebApplication4.Controllers
                 });
             }
 
-            var url = await Client.GetAuthorizationRequestUrlAsync(Request.Url.ToString());
-            ViewBag.AuthorizationUri = url;
-            return View();
+            return await Client.GetAuthorizationRequestUrlAsync(url);
         }
 
         [HttpPost]

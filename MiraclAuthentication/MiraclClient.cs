@@ -154,6 +154,13 @@ namespace Miracl
         /// <returns>
         /// The access token from the authentication response.
         /// </returns>
+        /// <exception cref="System.ArgumentNullException">requestQuery</exception>
+        /// <exception cref="System.InvalidOperationException">No Options for authentication! ValidateAuthorization method should be called first!</exception>
+        /// <exception cref="System.ArgumentException">
+        /// requestQuery
+        /// or
+        /// Invalid state!
+        /// </exception>
         public async Task<TokenResponse> ValidateAuthorization(NameValueCollection requestQuery, string redirectUri = "")
         {
             if (requestQuery == null)
@@ -179,7 +186,23 @@ namespace Miracl
             {
                 throw new ArgumentException("Invalid state!");
             }
-  
+            
+            return await ValidateAuthorizationCode(code, "", redirectUri);
+        }
+
+
+        /// <summary>
+        /// Returns response with the access token if validation of the specified code value succeeds and the user identifier, if passed, corresponds to the identity token one.
+        /// </summary>
+        /// <param name="code">The code.</param>
+        /// <param name="userId">The user identifier. If not specified, the user id verification is not made. </param>
+        /// <param name="redirectUri">The redirect URI. If not specified, it will be taken from the authorization request.</param>
+        /// <returns>
+        /// The access token from the authentication response.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Empty redirect uri!</exception>
+        public async Task<TokenResponse> ValidateAuthorizationCode(string code, string userId, string redirectUri = "")
+        {
             if (string.IsNullOrEmpty(redirectUri) && string.IsNullOrEmpty(callbackUrl))
             {
                 throw new ArgumentException("Empty redirect uri!");
@@ -197,13 +220,9 @@ namespace Miracl
             client.Timeout = this.Options.BackchannelTimeout;
             client.AuthenticationStyle = AuthenticationStyle.PostValues;
             this.accessTokenResponse = await client.RequestAuthorizationCodeAsync(code, redirectUri);
-            if (this.accessTokenResponse == null || !IsNonceValid(this.accessTokenResponse.IdentityToken))
-            {
-                throw new ArgumentException("Invalid nonce!");
-            }
-            return this.accessTokenResponse;
+            return IsIdentityTokenValid(userId) ? this.accessTokenResponse : null;
         }
-
+        
         /// <summary>
         /// Clears the user authorization information.
         /// </summary>
@@ -288,6 +307,27 @@ namespace Miracl
                                                     nonce: this.Nonce);
         }
 
+        private bool IsIdentityTokenValid(string userId)
+        {
+            bool isUserIdValid = true;
+            if (!string.IsNullOrEmpty(userId) && this.accessTokenResponse.IdentityToken != null)
+            {
+                isUserIdValid = userId == GetUserId(this.accessTokenResponse.IdentityToken);
+            }
+
+            if (this.accessTokenResponse == null || string.IsNullOrEmpty(this.accessTokenResponse.IdentityToken))
+            {
+                throw new ArgumentException("Invalid token data!");
+            }
+
+            if (this.accessTokenResponse == null || !IsNonceValid(this.accessTokenResponse.IdentityToken))
+            {
+                throw new ArgumentException("Invalid nonce!");
+            }
+            
+            return isUserIdValid;
+        }
+
         private async Task LoadOpenIdConnectConfigurationAsync()
         {
             if (config == null)
@@ -314,10 +354,23 @@ namespace Miracl
 
             return nonce.ToString().Equals(this.Nonce);
         }
+        
+
+        private string GetUserId(string identityToken)
+        {
+            if (string.IsNullOrEmpty(identityToken))
+            {
+                return string.Empty;
+            }
+
+            var idToken = ParseJwt(identityToken);
+            var id = idToken.GetValue("sub");            
+            return id == null ? string.Empty : id.ToString();
+        }
 
         private JObject ParseJwt(string token)
         {
-            if (!token.Contains("."))
+            if (string.IsNullOrEmpty(token) || !token.Contains("."))
             {
                 throw new ArgumentException("Wrong token data!");
             }

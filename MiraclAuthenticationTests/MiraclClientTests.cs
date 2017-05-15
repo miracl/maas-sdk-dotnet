@@ -237,10 +237,12 @@ namespace MiraclAuthenticationTests
         public void Test_ValidateAuthorization_UseCallbackUrl()
         {
             var mockHttp = new MockHttpMessageHandler();
-            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"MockIdToken\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
+            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"" + ValidIdToken +"\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
             mockHttp.When(UserEndpoint).Respond("application/json", "{\"sub\":\"noone@miracl.com\"}");
             
             MiraclAuthenticationOptions options = new MiraclAuthenticationOptions();
+            options.ClientId = "MockClient";
+            options.ClientSecret = "MockSecret";
             options.BackchannelHttpHandler = mockHttp;
             MiraclClient client = new MiraclClient(options);
             NameValueCollection nvc = new NameValueCollection();
@@ -248,16 +250,49 @@ namespace MiraclAuthenticationTests
             nvc["state"] = "MockState";
             client.State = nvc["state"];
             client.callbackUrl = "/CallbackPath";
+            client.config = new OpenIdConnectConfiguration();
+            client.config.TokenEndpoint = TokenEndpoint;
+            client.Nonce = Nonce;
 
-            var response = client.ValidateAuthorization(nvc);
+            var response = client.ValidateAuthorization(nvc).Result;
             Assert.That(response, Is.Not.Null);
+        }
+
+        [Test]
+        public void Test_ValidateAuthorizationCode()
+        {
+            var mockHttp = new MockHttpMessageHandler();
+            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"" + ValidIdToken + "\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
+
+            MiraclAuthenticationOptions options = new MiraclAuthenticationOptions();
+            options.ClientId = "MockClient";
+            options.ClientSecret = "MockSecret";
+            options.BackchannelHttpHandler = mockHttp;
+            MiraclClient client = new MiraclClient(options);
+            client.callbackUrl = "/CallbackPath";
+            client.config = new OpenIdConnectConfiguration();
+            client.config.TokenEndpoint = TokenEndpoint;
+            client.Nonce = Nonce;
+
+            var response = client.ValidateAuthorizationCode("MockCode", "wrong@mail.me").Result;
+            Assert.That(response, Is.Null);
+            
+            response = client.ValidateAuthorizationCode("MockCode", "petya.koleva@miracl.com").Result;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.RefreshToken, Is.EqualTo("MockRefresh"));
+            Assert.That(response.AccessToken, Is.EqualTo("MockToken"));
+
+            mockHttp.Clear();
+            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"MockToken\",\"expires_in\":600,\"id_token\":\"\",\"refresh_token\":\"MockRefresh\",\"scope\":\"openid\",\"token_type\":\"Bearer\"}");
+            Assert.That(() => client.ValidateAuthorizationCode("MockCode", "empty@identity.token"),
+                Throws.TypeOf<ArgumentException>().And.Message.EqualTo("Invalid token data!"));
         }
             
         [Test]
         public void Test_ValidateAuthorization_InvalidNonce()
         {
             var mockHttp = new MockHttpMessageHandler();
-            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"\"}");
+            mockHttp.When(TokenEndpoint).Respond("application/json", "{\"access_token\":\"\",\"id_token\":\".eyJzdWIiOiJwZXR5YS5rb2xldmFAbWlyYWNsLmNvbSJ9\"}");
             
             MiraclAuthenticationOptions options = new MiraclAuthenticationOptions();
             options.BackchannelHttpHandler = mockHttp;

@@ -20,6 +20,9 @@
                     <p class="lead">
                         <a id="btmpin"></a>
                     </p>
+                    <br />
+                    <br />
+                    <br />
                     <p>
                         @Html.CheckBox("UsePrerollId") &nbsp; Use PrerollId login
                         <div hidden="hidden">
@@ -37,26 +40,26 @@
         <br />
 
 
-    @if (User.Identity.IsAuthenticated)
-    {
-        <div class="col-md-10">
-            <h3>Identity</h3>
-            <p>
-                <dl>
-                    @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
+        @if (User.Identity.IsAuthenticated)
+        {
+            <div class="col-md-10">
+                <h3>Identity</h3>
+                <p>
+                    <dl>
+                        @foreach (var claim in System.Security.Claims.ClaimsPrincipal.Current.Claims)
                 {
-                        <dt>@claim.Type</dt>
-                        <dd>@claim.Value</dd>
-                    }
-                </dl>
-            </p>
-        </div>
-    }
+                            <dt>@claim.Type</dt>
+                            <dd>@claim.Value</dd>
+                        }
+                    </dl>
+                </p>
+            </div>
+        }
 
     </div>
 
     @section scripts{
-        <script src="<<Insert correct mpad url here>>"  data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>		
+    <script src="<<Insert correct mpad url here>>"  data-authurl="@ViewBag.AuthorizationUri" data-element="btmpin"></script>
         <script>
             $("#UsePrerollId").change(
             function () {
