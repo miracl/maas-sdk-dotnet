@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IdentityModel.Tokens;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -25,6 +26,7 @@ namespace Miracl
         internal string callbackUrl;
         private TokenResponse accessTokenResponse;
         private List<SystemClaims.Claim> claims;
+        private ClaimsPrincipal idTokenClaims;
         #endregion
 
         #region C'tor
@@ -167,30 +169,34 @@ namespace Miracl
             {
                 throw new ArgumentNullException("requestQuery");
             }
-  
+
             if (Options == null)
             {
                 throw new InvalidOperationException("No Options for authentication! ValidateAuthorization method should be called first!");
             }
-  
+
             string code = requestQuery[Constants.Code];
             string returnedState = requestQuery[Constants.State];
+            string error = requestQuery[Constants.Error];
+            if (!string.IsNullOrEmpty(error))
+            {
+                throw new Exception(error);
+            }
 
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(returnedState))
             {
                 throw new ArgumentException(
                     string.Format("requestQuery does not have the proper \"{0}\" and \"{1}\" parameteres.", Constants.Code, Constants.State), "requestQuery");
             }
-  
+
             if (!State.Equals(returnedState, StringComparison.Ordinal))
             {
                 throw new ArgumentException("Invalid state!");
             }
-            
-            return await ValidateAuthorizationCode(code, "", redirectUri);
+
+            return await ValidateAuthorizationCode(code, string.Empty, redirectUri);
         }
-
-
+        
         /// <summary>
         /// Returns response with the access token if validation of the specified code value succeeds and the user identifier, if passed, corresponds to the identity token one.
         /// </summary>
@@ -207,12 +213,12 @@ namespace Miracl
             {
                 throw new ArgumentException("Empty redirect uri!");
             }
-  
+
             if (string.IsNullOrEmpty(redirectUri))
             {
                 redirectUri = callbackUrl;
             }
-  
+
             var client = this.Options.BackchannelHttpHandler != null
                           ? new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret, this.Options.BackchannelHttpHandler)
                           : new TokenClient(config.TokenEndpoint, this.Options.ClientId, this.Options.ClientSecret);
@@ -274,112 +280,9 @@ namespace Miracl
                     ClaimsIdentity.DefaultNameClaimType,
                     ClaimsIdentity.DefaultRoleClaimType);
         }
-
         #endregion
 
-        #region Private
-        /// <summary>
-        /// Constructs redirect URL for authorization via M-Pin system to be redirected to.
-        /// </summary>
-        /// <param name="baseUri">The base URI.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="stateString">The state string.</param>
-        /// <returns>Uri for authorization to be redirected to.</returns>
-        /// <exception cref="System.ArgumentException">MiraclAuthenticationOptions should be set!</exception>
-        private string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
-        {   
-            this.State = stateString ?? Guid.NewGuid().ToString("N");
-            byte[] nonceBytes = new byte[16]; 
-            using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
-            {
-                randomNumberGenerator.GetBytes(nonceBytes);
-            }
-
-            this.Nonce = string.Concat(nonceBytes.Select(b => b.ToString("x2")));
-            this.callbackUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
-
-            var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);
-            return authRequest.CreateAuthorizeUrl(clientId: this.Options.ClientId,
-                                                    responseType: Constants.Code,
-                                                    scope: Constants.Scope,
-                                                    redirectUri: callbackUrl,
-                                                    state: this.State,
-                                                    nonce: this.Nonce);
-        }
-
-        private bool IsIdentityTokenValid(string userId)
-        {
-            bool isUserIdValid = true;
-            if (!string.IsNullOrEmpty(userId) && this.accessTokenResponse.IdentityToken != null)
-            {
-                isUserIdValid = userId == GetUserId(this.accessTokenResponse.IdentityToken);
-            }
-
-            if (this.accessTokenResponse == null || string.IsNullOrEmpty(this.accessTokenResponse.IdentityToken))
-            {
-                throw new ArgumentException("Invalid token data!");
-            }
-
-            if (this.accessTokenResponse == null || !IsNonceValid(this.accessTokenResponse.IdentityToken))
-            {
-                throw new ArgumentException("Invalid nonce!");
-            }
-            
-            return isUserIdValid;
-        }
-
-        private async Task LoadOpenIdConnectConfigurationAsync()
-        {
-            if (config == null)
-            {
-                string discoveryAddress = string.IsNullOrEmpty(this.Options.PlatformAPIAddress) ? Constants.ServerBaseAddress : this.Options.PlatformAPIAddress;
-                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoveryAddress + Constants.DiscoveryPath);
-                config = await manager.GetConfigurationAsync();
-            }
-        }
-
-        private bool IsNonceValid(string identityToken)
-        {
-            if (string.IsNullOrEmpty(identityToken))
-            {
-                return false;
-            }
-
-            var idToken = ParseJwt(identityToken);
-            var nonce = idToken.GetValue("nonce");
-            if (nonce == null || string.IsNullOrEmpty(nonce.ToString()))
-            {
-                return false;
-            }
-
-            return nonce.ToString().Equals(this.Nonce);
-        }
-        
-
-        private string GetUserId(string identityToken)
-        {
-            if (string.IsNullOrEmpty(identityToken))
-            {
-                return string.Empty;
-            }
-
-            var idToken = ParseJwt(identityToken);
-            var id = idToken.GetValue("sub");            
-            return id == null ? string.Empty : id.ToString();
-        }
-
-        private JObject ParseJwt(string token)
-        {
-            if (string.IsNullOrEmpty(token) || !token.Contains("."))
-            {
-                throw new ArgumentException("Wrong token data!");
-            }
-
-            var parts = token.Split('.');
-            var part = Encoding.UTF8.GetString(Base64Url.Decode(parts[1]));
-            return JObject.Parse(part);
-        }
-
+        #region Internal
         internal async Task FillClaimsAsync(TokenResponse response)
         {
             if (response == null || string.IsNullOrWhiteSpace(response.IdentityToken) || string.IsNullOrEmpty(response.AccessToken))
@@ -400,6 +303,176 @@ namespace Miracl
             }
         }
 
+        internal string TryGetValue(string propertyName)
+        {
+            if (this.userInfo == null || this.userInfo.JsonObject == null)
+                return string.Empty;
+
+            JToken value;
+            return this.userInfo.JsonObject.TryGetValue(propertyName, out value) ? value.ToString() : null;
+        }
+        #endregion
+
+        #region Private
+        /// <summary>
+        /// Constructs redirect URL for authorization via M-Pin system to be redirected to.
+        /// </summary>
+        /// <param name="baseUri">The base URI.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="stateString">The state string.</param>
+        /// <returns>Uri for authorization to be redirected to.</returns>
+        /// <exception cref="System.ArgumentException">MiraclAuthenticationOptions should be set!</exception>
+        private string GetAuthorizationRequestUrl(string baseUri, MiraclAuthenticationOptions options = null, string stateString = null)
+        {
+            this.State = stateString ?? Guid.NewGuid().ToString("N");
+            byte[] nonceBytes = new byte[16];
+            using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
+            {
+                randomNumberGenerator.GetBytes(nonceBytes);
+            }
+
+            this.Nonce = string.Concat(nonceBytes.Select(b => b.ToString("x2")));
+            this.callbackUrl = baseUri.TrimEnd('/') + this.Options.CallbackPath;
+
+            var authRequest = new AuthorizeRequest(config.AuthorizationEndpoint);
+            return authRequest.CreateAuthorizeUrl(clientId: this.Options.ClientId,
+                                                    responseType: Constants.Code,
+                                                    scope: Constants.Scope,
+                                                    redirectUri: callbackUrl,
+                                                    state: this.State,
+                                                    nonce: this.Nonce);
+        }
+
+        private bool IsIdentityTokenValid(string userId)
+        {
+            if (this.accessTokenResponse == null || string.IsNullOrEmpty(this.accessTokenResponse.IdentityToken))
+            {
+                throw new ArgumentException("Invalid token data!");
+            }
+
+            if (!IsNonceValid(this.accessTokenResponse.IdentityToken))
+            {
+                throw new ArgumentException("Invalid nonce!");
+            }
+
+            bool isUserIdValid = true;
+            // if userId is passed, it should be the same as the identity token one's
+            if (!string.IsNullOrEmpty(userId))
+            {
+                isUserIdValid = userId == GetUserId(this.accessTokenResponse.IdentityToken);
+            }
+            
+            this.idTokenClaims = ValidateIdentityToken(this.accessTokenResponse.IdentityToken);
+            return isUserIdValid;
+        }
+
+        private ClaimsPrincipal ValidateIdentityToken(string idToken)
+        {
+            string kid = GetKey(idToken);
+
+            SecurityToken securityToken;
+            var jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
+            var jwt = jwtSecurityTokenHandler.ReadToken(idToken) as JwtSecurityToken;
+            var rsaPublicKey = CreatePublicKey(kid);
+
+            var prms = new TokenValidationParameters()
+            {
+                IssuerSigningToken = new RsaSecurityToken(rsaPublicKey, kid),
+                IssuerSigningKeyResolver = (token, securityToken2, keyIdentifier, validationParameters) =>
+                                           {
+                                               return new RsaSecurityKey(rsaPublicKey);
+                                           },
+                ValidIssuer = config.Issuer,
+                ValidAudience = this.Options.ClientId
+            };
+
+            if (UnitTestDetector.IsInUnitTest)
+            {
+                prms.ValidateLifetime = false;
+            }
+
+            return jwtSecurityTokenHandler.ValidateToken(idToken, prms, out securityToken);
+        }
+
+        private static string GetKey(string jwt)
+        {
+            string[] parts = jwt.Split('.');
+            if (parts.Length != 3)
+            {
+                // signed JWT should have header, payload and signature part, separated with a dot
+                throw new ArgumentException("Invalid token format");
+            }
+
+            string header = parts[0];
+            var part = Encoding.UTF8.GetString(Base64Url.Decode(header));
+            var headerData = JObject.Parse(part);
+            return headerData["kid"].ToString();
+        }
+
+        private RSACryptoServiceProvider CreatePublicKey(string kid)
+        {
+            if (config == null || config.JsonWebKeySet == null)
+            {
+                throw new ArgumentException("No Keys found in the config");
+            }
+
+            var cryptoProvider = new RSACryptoServiceProvider();
+            foreach (var key in config.JsonWebKeySet.Keys)
+            {
+                if (key.Kty == "RSA" && key.Kid.Equals(kid))
+                {
+                    cryptoProvider.ImportParameters(new RSAParameters()
+                    {
+                        Exponent = Base64UrlEncoder.DecodeBytes(key.E),
+                        Modulus = Base64UrlEncoder.DecodeBytes(key.N)
+                    });
+                }
+            }
+
+            return cryptoProvider;
+        }
+
+        private async Task LoadOpenIdConnectConfigurationAsync()
+        {
+            if (config == null)
+            {
+                string discoveryAddress = string.IsNullOrEmpty(this.Options.PlatformAPIAddress) ? Constants.ServerBaseAddress : this.Options.PlatformAPIAddress;
+                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoveryAddress + Constants.DiscoveryPath);
+                config = await manager.GetConfigurationAsync();
+            }
+        }
+
+        private bool IsNonceValid(string identityToken)
+        {
+            var idToken = ParseJwt(identityToken);
+            var nonce = idToken.GetValue("nonce");
+            if (nonce == null || string.IsNullOrEmpty(nonce.ToString()))
+            {
+                return false;
+            }
+
+            return nonce.ToString().Equals(this.Nonce);
+        }
+        
+        private string GetUserId(string identityToken)
+        {
+            var idToken = ParseJwt(identityToken);
+            var id = idToken.GetValue("sub");
+            return id == null ? string.Empty : id.ToString();
+        }
+
+        private JObject ParseJwt(string token)
+        {
+            if (string.IsNullOrEmpty(token) || !token.Contains("."))
+            {
+                throw new ArgumentException("Wrong token data!");
+            }
+
+            var parts = token.Split('.');
+            var part = Encoding.UTF8.GetString(Base64Url.Decode(parts[1]));
+            return JObject.Parse(part);
+        }
+
         private async Task<IEnumerable<Claim>> GetUserInfoClaimsAsync(string accessToken)
         {
             UserInfoClient client = this.Options.BackchannelHttpHandler != null
@@ -415,15 +488,6 @@ namespace Miracl
             }
 
             return claims;
-        }
-
-        internal string TryGetValue(string propertyName)
-        {
-            if (this.userInfo == null || this.userInfo.JsonObject == null)
-                return string.Empty;
-
-            JToken value;
-            return this.userInfo.JsonObject.TryGetValue(propertyName, out value) ? value.ToString() : null;
         }
         #endregion
         #endregion
