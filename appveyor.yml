@@ -10,7 +10,7 @@ environment:
   OPENCOVER_EXE: '%COVERAGE_DIR%\OpenCover.%OPENCOVER_VER%\tools\OpenCover.Console.exe'
   COVERALLS_NET_EXE: '%COVERAGE_DIR%\coveralls.net.%COVERALLS_NET_VER%\tools\csmacnz.Coveralls.exe'
   COVERALLS_REPO_TOKEN:
-    secure: vkSkvdDjJFj2ghCHwMzovXseDVxy0h6DjUwJSyA2NIQ++y7lRwn+uAHtz/1/zqju
+    secure: c5PDGKgQvN2HpqGDpbOBIC6Lnpxbn+G3na+YAFFaG2zJaAV3KncodqVKHM8/b0c+
 
 install:
   - cmd: |
@@ -27,4 +27,4 @@ build:
 test_script:
   - cmd: |
       %OPENCOVER_EXE% -target:nunit3-console.exe -targetargs:".\MiraclAuthenticationTests\bin\Release\MiraclAuthenticationTests.dll" -filter:"%COVERAGE_FILTER%" -register:user -output:%COVERAGE_DIR%\coverage.xml
-      %COVERALLS_NET_EXE% --opencover --useRelativePaths -i %COVERAGE_DIR%\coverage.xml
+      %COVERALLS_NET_EXE% --opencover -i %COVERAGE_DIR%\coverage.xml --serviceName appveyor --useRelativePaths
